@@ -1,12 +1,11 @@
 {
   "manifest_version": 3,
   "name": "划词翻译",
-  "version": "0.2.0",
-  "description": "选中网页文字即可翻译。支持 Google 免费接口、百度翻译、DeepSeek 三种引擎。",
+  "version": "0.3.0",
+  "description": "选中网页文字即可翻译。支持 DeepSeek 与 Google 两种引擎。",
   "permissions": ["storage"],
   "host_permissions": [
     "https://translate.googleapis.com/*",
-    "https://fanyi-api.baidu.com/*",
     "https://api.deepseek.com/*"
   ],
   "background": {
@@ -22,6 +21,7 @@
   ],
   "options_page": "options.html",
   "action": {
-    "default_title": "划词翻译 · 点击打开设置"
+    "default_title": "划词翻译",
+    "default_popup": "popup.html"
   }
 }

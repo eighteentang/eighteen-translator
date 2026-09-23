@@ -31,15 +31,12 @@ function syncEnginePanels() {
   const engine = currentEngine();
 
   $('sec-engine').classList.toggle('is-hidden', isFree);
-  $('cfg-baidu').classList.toggle('on', !isFree && engine === 'baidu');
   $('cfg-deepseek').classList.toggle('on', !isFree && engine === 'deepseek');
 }
 
 function fill(cfg) {
   $('enabled').checked = cfg.enabled !== false;
   $('targetLang').value = cfg.targetLang || 'zh';
-  $('baiduAppId').value = cfg.baiduAppId || '';
-  $('baiduKey').value = cfg.baiduKey || '';
   $('deepseekKey').value = cfg.deepseekKey || '';
 
   const radio = document.querySelector('input[name="engine"][value="' + (cfg.engine || 'google') + '"]');
@@ -58,8 +55,6 @@ function collect() {
     quotaMode: currentQuotaMode(),
     engine: currentEngine(),
     targetLang: $('targetLang').value,
-    baiduAppId: $('baiduAppId').value.trim(),
-    baiduKey: $('baiduKey').value.trim(),
     deepseekKey: $('deepseekKey').value.trim()
   };
 }

@@ -28,11 +28,9 @@
        是预留接缝。将来接入托管后端时，只需实现那一个函数，其余文件不用动。 */
     quotaMode: 'own',
 
-    engine: 'deepseek', // google | baidu | deepseek
+    engine: 'deepseek', // deepseek | google
     targetLang: 'zh',   // zh | en
 
-    baiduAppId: '',
-    baiduKey: '',
     deepseekKey: ''
   };
 

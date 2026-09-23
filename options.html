@@ -157,7 +157,7 @@
   <h1>划词翻译</h1>
   <p class="sub">在任意网页选中文字，松开鼠标即可看到译文。</p>
 
-  <div class="banner">首次使用需要先选一个引擎并填好凭据，否则划词时会提示「尚未配置」。</div>
+  <div class="banner">首次使用请先选好引擎：DeepSeek 需要填 API Key，Google 免费接口无需任何配置。</div>
 
   <section>
     <div class="card">
@@ -203,13 +203,6 @@
         </span>
       </label>
       <label class="engine">
-        <input type="radio" name="engine" value="baidu">
-        <span>
-          <span class="name">百度翻译</span>
-          <span class="hint">需申请 AppID 与密钥，境内直连稳定、延迟低</span>
-        </span>
-      </label>
-      <label class="engine">
         <input type="radio" name="engine" value="google">
         <span>
           <span class="name">Google 免费接口</span>
@@ -217,21 +210,6 @@
         </span>
       </label>
     </div>
-  </section>
-
-  <section id="cfg-baidu" class="cfg">
-    <h2>百度翻译凭据</h2>
-    <div class="card">
-      <div class="field">
-        <label for="baiduAppId">APP ID</label>
-        <input type="text" id="baiduAppId" autocomplete="off" spellcheck="false" placeholder="例如 2024010100xxxxx">
-      </div>
-      <div class="field">
-        <label for="baiduKey">密钥</label>
-        <input type="password" id="baiduKey" autocomplete="off" spellcheck="false" placeholder="开发者密钥">
-      </div>
-    </div>
-    <p class="note">在百度翻译开放平台完成个人实名认证后，于「管理控制台 → 开发者信息」获取，并开通「通用文本翻译」。免费额度以官网当前说明为准。</p>
   </section>
 
   <section id="cfg-deepseek" class="cfg">

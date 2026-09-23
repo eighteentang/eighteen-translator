@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>划词翻译</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c1c1c;
+    --muted: #7a7a7a;
+    --line: rgba(0, 0, 0, 0.12);
+    --card: #fafafa;
+    --accent: #2f6fed;
+    --warn: #c0392b;
+    --ok: #1f8a4c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1e;
+      --fg: #e8e8e8;
+      --muted: #9a9a9a;
+      --line: rgba(255, 255, 255, 0.14);
+      --card: #262626;
+      --accent: #6f9dff;
+      --warn: #ff8f85;
+      --ok: #6ddba0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    width: 316px;
+    margin: 0;
+    padding: 13px 13px 11px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  h1 {
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  h1 .ver { color: var(--muted); font-size: 11px; font-weight: 400; }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--card);
+    padding: 3px 12px;
+    margin-bottom: 10px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 9px 0;
+  }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row .desc { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; }
+  .cap {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  label.opt {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 9px 0;
+    cursor: pointer;
+  }
+  label.opt + label.opt { border-top: 1px solid var(--line); }
+  label.opt input { margin: 3px 0 0; flex: none; }
+  label.opt .name { font-size: 13px; }
+  label.opt .hint { display: block; color: var(--muted); font-size: 11px; }
+  label.opt .hint.warn { color: var(--warn); }
+  label.opt .hint.ok { color: var(--ok); }
+  .meta {
+    margin: 0 0 10px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .meta b { color: var(--fg); font-weight: 500; }
+  button {
+    width: 100%;
+    padding: 7px 14px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); color: var(--accent); }
+  #status {
+    margin: 7px 0 0;
+    min-height: 16px;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+  }
+  #status.err { color: var(--warn); }
+  #status.ok { color: var(--ok); }
+</style>
+</head>
+<body>
+
+<h1>划词翻译<span class="ver" id="ver"></span></h1>
+
+<div class="card">
+  <div class="row">
+    <span>
+      启用划词翻译
+      <span class="desc">关闭后所有网页都不再触发</span>
+    </span>
+    <input type="checkbox" id="enabled">
+  </div>
+</div>
+
+<p class="cap">翻译引擎</p>
+<div class="card">
+  <label class="opt">
+    <input type="radio" name="engine" value="deepseek">
+    <span>
+      <span class="name">DeepSeek</span>
+      <span class="hint" id="hint-deepseek">—</span>
+    </span>
+  </label>
+  <label class="opt">
+    <input type="radio" name="engine" value="google">
+    <span>
+      <span class="name">Google 免费接口</span>
+      <span class="hint">零配置，公共接口可能返回 429</span>
+    </span>
+  </label>
+</div>
+
+<p class="meta">服务模式：<b id="quota-label">—</b></p>
+
+<button id="open-options">完整设置</button>
+<div id="status"></div>
+
+<script src="config.js"></script>
+<script src="popup.js"></script>
+</body>
+</html>

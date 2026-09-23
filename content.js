@@ -8,7 +8,7 @@
   const HOST_ID = 'wt-translate-host';
   // DEFAULTS 的单一真源在 config.js —— manifest 的 content_scripts 已把它排在本文件之前
   const DEFAULTS = globalThis.WT_CONFIG.DEFAULTS;
-  const ENGINE_LABEL = { google: 'Google 翻译', baidu: '百度翻译', deepseek: 'DeepSeek' };
+  const ENGINE_LABEL = { google: 'Google 翻译', deepseek: 'DeepSeek' };
 
   const MAX_LEN = 1000;   // 超过这个长度不翻译，避免误选整页
   const DEBOUNCE = 220;   // 松开鼠标后延迟，等浏览器把选区确定下来
