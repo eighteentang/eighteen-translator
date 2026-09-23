@@ -1,0 +1,18 @@
+# 系统垃圾
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+
+# 打包与签名产物（扩展发布用，不进版本库）
+*.zip
+*.crx
+*.pem
+*.key
+
+# 依赖（本项目无 npm，留作兜底）
+node_modules/

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>划词翻译 · 设置</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1c1c1c;
+    --muted: #7a7a7a;
+    --line: rgba(0, 0, 0, 0.12);
+    --card: #fafafa;
+    --accent: #2f6fed;
+    --danger: #c0392b;
+    --ok: #1f8a4c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1e;
+      --fg: #e8e8e8;
+      --muted: #9a9a9a;
+      --line: rgba(255, 255, 255, 0.14);
+      --card: #262626;
+      --accent: #6f9dff;
+      --danger: #ff8f85;
+      --ok: #6ddba0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 64px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+  }
+  .wrap { max-width: 620px; margin: 0 auto; }
+  h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+  .sub { margin: 0 0 22px; color: var(--muted); font-size: 13px; }
+  .banner {
+    margin: 0 0 26px;
+    padding: 11px 14px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 9px;
+    background: var(--card);
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 11px;
+  }
+  h2 {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+  }
+  section { margin-bottom: 26px; }
+  .card {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    padding: 4px 14px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 11px 0;
+  }
+  .row + .row { border-top: 1px solid var(--line); }
+  .row .label { font-size: 14px; }
+  .row .desc { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  label.engine {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 0;
+    cursor: pointer;
+  }
+  label.engine + label.engine { border-top: 1px solid var(--line); }
+  label.engine input { margin: 3px 0 0; flex: none; }
+  label.engine .name { font-size: 14px; }
+  label.engine .hint { display: block; color: var(--muted); font-size: 12px; }
+  .cfg { display: none; }
+  .cfg.on { display: block; }
+  .field { padding: 11px 0; }
+  .field + .field { border-top: 1px solid var(--line); }
+  .field label { display: block; font-size: 13px; margin-bottom: 5px; }
+  input[type="text"], input[type="password"], select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 13px;
+  }
+  input[type="text"]:focus, input[type="password"]:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+  }
+  button {
+    padding: 8px 18px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: var(--accent);
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button.ghost {
+    background: transparent;
+    border-color: var(--line);
+    color: var(--fg);
+  }
+  button:disabled { opacity: 0.55; cursor: default; }
+  .status { font-size: 13px; color: var(--muted); }
+  .status.err { color: var(--danger); }
+  .status.ok { color: var(--ok); }
+  .note {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    border-left: 2px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>划词翻译</h1>
+  <p class="sub">在任意网页选中文字，松开鼠标即可看到译文。</p>
+
+  <div class="banner">首次使用需要先选一个引擎并填好凭据，否则划词时会提示「尚未配置」。</div>
+
+  <section>
+    <div class="card">
+      <div class="row">
+        <span class="label">
+          启用划词翻译
+          <span class="desc">关闭后所有网页都不再触发</span>
+        </span>
+        <input type="checkbox" id="enabled">
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>翻译引擎</h2>
+    <div class="card">
+      <label class="engine">
+        <input type="radio" name="engine" value="deepseek">
+        <span>
+          <span class="name">DeepSeek<span class="badge">推荐</span></span>
+          <span class="hint">需 API Key。能结合语境翻译，单次成本约万分之几元</span>
+        </span>
+      </label>
+      <label class="engine">
+        <input type="radio" name="engine" value="baidu">
+        <span>
+          <span class="name">百度翻译</span>
+          <span class="hint">需申请 AppID 与密钥，境内直连稳定、延迟低</span>
+        </span>
+      </label>
+      <label class="engine">
+        <input type="radio" name="engine" value="google">
+        <span>
+          <span class="name">Google 免费接口</span>
+          <span class="hint">零配置，但公共接口对共享 IP 限流严格，可能返回 429</span>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <section id="cfg-baidu" class="cfg">
+    <h2>百度翻译凭据</h2>
+    <div class="card">
+      <div class="field">
+        <label for="baiduAppId">APP ID</label>
+        <input type="text" id="baiduAppId" autocomplete="off" spellcheck="false" placeholder="例如 2024010100xxxxx">
+      </div>
+      <div class="field">
+        <label for="baiduKey">密钥</label>
+        <input type="password" id="baiduKey" autocomplete="off" spellcheck="false" placeholder="开发者密钥">
+      </div>
+    </div>
+    <p class="note">在百度翻译开放平台完成个人实名认证后，于「管理控制台 → 开发者信息」获取，并开通「通用文本翻译」。免费额度以官网当前说明为准。</p>
+  </section>
+
+  <section id="cfg-deepseek" class="cfg">
+    <h2>DeepSeek 凭据</h2>
+    <div class="card">
+      <div class="field">
+        <label for="deepseekKey">API Key</label>
+        <input type="password" id="deepseekKey" autocomplete="off" spellcheck="false" placeholder="sk-...">
+      </div>
+    </div>
+    <p class="note">在 DeepSeek 开放平台创建 API Key 并充值后使用。按官方定价，一次划词翻译的成本在万分之几元的量级。</p>
+  </section>
+
+  <section>
+    <h2>目标语言</h2>
+    <div class="card">
+      <div class="field">
+        <select id="targetLang">
+          <option value="zh">翻译成中文</option>
+          <option value="en">翻译成英文</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button id="save">保存</button>
+    <button id="test" class="ghost">测试当前引擎</button>
+    <span id="status" class="status"></span>
+  </div>
+</div>
+<script src="options.js"></script>
+</body>
+</html>
