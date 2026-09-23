@@ -4,14 +4,14 @@
    职责：接收 content script 的翻译请求，按配置调用对应引擎，返回译文。
    放在后台统一发请求的原因：content script 受页面 CSP 限制，跨域请求容易失败。 */
 
-const DEFAULTS = {
-  enabled: true,
-  engine: 'deepseek', // google | baidu | deepseek
-  targetLang: 'zh', // zh | en
-  baiduAppId: '',
-  baiduKey: '',
-  deepseekKey: ''
-};
+/* DEFAULTS 的单一真源在 config.js —— 这里不再自带一份拷贝。
+   MV3 的 service worker 是 classic script，importScripts 为同步加载；
+   Node 环境（dev/selftest.js）由测试脚本先行 require('./config.js')。 */
+if (typeof importScripts === 'function') importScripts('config.js');
+if (!globalThis.WT_CONFIG) {
+  throw new Error('config.js 未加载：请确认 manifest 的 service_worker 与自测脚本都已先加载它');
+}
+const DEFAULTS = globalThis.WT_CONFIG.DEFAULTS;
 
 // 各家引擎的语言代码不一致，在这里做映射
 const LANG = {
@@ -154,10 +154,30 @@ async function translateDeepseek(text, target, cfg) {
   return out;
 }
 
+/* ---------- 引擎 4：平台免费额度（预留接缝，尚未开放） ---------- */
+
+/* 用户不配置任何凭据、由本扩展的服务端代付额度。
+
+   将来接入托管后端时，只需实现这个函数（请求自己的 Worker），
+   其余文件 —— 设置页、配置存储、调度逻辑 —— 都不用动。
+
+   实现时要注意的三条（先记在这里，免得以后忘）：
+   1. 服务端地址写在这里，绝不要把任何 API Key 打进扩展包；
+   2. 服务端要能识别设备、按日限额，并设「每日总预算熔断」兜底 ——
+      单靠每人每日上限挡不住批量刷，熔断才是唯一能兜住损失的机制；
+   3. 网络失败时不要锁死用户，退回提示「改用自己的 API Key」，而不是卡住不动。 */
+async function translateViaPlatform(text, target, cfg) {
+  throw new Error('平台免费额度正在测试中，尚未开放。请到设置页改用「使用自己的 API Key」');
+}
+
 /* ---------- 调度与错误翻译 ---------- */
 
 function runTranslate(text, cfg) {
   const target = cfg.targetLang || 'zh';
+
+  // 额度来源优先于引擎选择：走平台额度时不看用户配置的引擎与凭据
+  if (cfg.quotaMode === 'free') return translateViaPlatform(text, target, cfg);
+
   if (cfg.engine === 'baidu') return translateBaidu(text, target, cfg);
   if (cfg.engine === 'deepseek') return translateDeepseek(text, target, cfg);
   return translateGoogle(text, target);

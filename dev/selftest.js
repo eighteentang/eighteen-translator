@@ -1,6 +1,10 @@
 /* 临时自测脚本：mock chrome API 与 fetch，验证 background.js 的引擎调度与错误处理 */
 
 const crypto = require('crypto');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const CFG = require(path.join(ROOT, 'config.js'));   // 共享配置需先加载，background.js 依赖它
 
 let handler = null;
 let override = {};
@@ -24,7 +28,7 @@ global.chrome = {
 
 global.fetch = (url, opts) => mockFetch(url, opts);
 
-require('D:/eighteentang-translator/background.js');
+require(path.join(ROOT, 'background.js'));
 
 function call(text) {
   return new Promise((resolve) => {
@@ -133,6 +137,21 @@ function check(name, cond, extra) {
   };
   r = await call('\u4f60\u597d');
   check('DeepSeek \u76ee\u6807\u4e3a\u82f1\u6587\u65f6\u63d0\u793a\u8bcd\u6b63\u786e', /English/.test(captured.body.messages[0].content));
+
+  /* 10. 共享配置：quotaMode 默认值（config.js 是单一真源） */
+  check('DEFAULTS.quotaMode \u9ed8\u8ba4\u4e3a own', CFG.DEFAULTS.quotaMode === 'own', String(CFG.DEFAULTS.quotaMode));
+
+  /* 11. 平台免费额度：预留接缝，应明确报「尚未开放」且不发任何请求 */
+  override = { quotaMode: 'free', engine: 'deepseek', targetLang: 'zh', deepseekKey: 'sk-test' };
+  mockFetch = async () => { throw new Error('\u4e0d\u5e94\u53d1\u8d77\u8bf7\u6c42'); };
+  r = await call('hello');
+  check('\u5e73\u53f0\u514d\u8d39\u989d\u5ea6\u672a\u5f00\u653e\u65f6\u6709\u660e\u786e\u63d0\u793a', r.ok === false && /\u5c1a\u672a\u5f00\u653e/.test(r.error), r.error);
+
+  /* 12. quotaMode='free' 优先于引擎选择 —— 即使填了凭据也不走引擎 */
+  override = { quotaMode: 'free', engine: 'baidu', targetLang: 'zh', baiduAppId: 'A', baiduKey: 'K' };
+  mockFetch = async () => { throw new Error('\u4e0d\u5e94\u53d1\u8d77\u8bf7\u6c42'); };
+  r = await call('hello');
+  check('quotaMode=free \u4f18\u5148\u4e8e\u5f15\u64ce\u9009\u62e9', r.ok === false && /\u5c1a\u672a\u5f00\u653e/.test(r.error), r.error);
 
   console.log('\n==> ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);

@@ -2,14 +2,8 @@
 
 /* 划词翻译 —— 设置页逻辑 */
 
-const DEFAULTS = {
-  enabled: true,
-  engine: 'deepseek',
-  targetLang: 'zh',
-  baiduAppId: '',
-  baiduKey: '',
-  deepseekKey: ''
-};
+// DEFAULTS 的单一真源在 config.js（options.html 里已先加载它）
+const DEFAULTS = globalThis.WT_CONFIG.DEFAULTS;
 
 const TEST_TEXT = {
   zh: 'The quick brown fox jumps over the lazy dog.',
@@ -23,10 +17,22 @@ function currentEngine() {
   return checked ? checked.value : 'google';
 }
 
+function currentQuotaMode() {
+  const checked = document.querySelector('input[name="quotaMode"]:checked');
+  return checked ? checked.value : 'own';
+}
+
+/* 「平台免费额度」模式下不需要选引擎、也不需要填凭据 —— 由服务端代付。
+   该模式目前置灰不可选，这段分支是为将来开放预留的：
+   届时只需放开那个 radio，再把 background.js 的 translateViaPlatform 实现掉，
+   这里不用改。 */
 function syncEnginePanels() {
+  const isFree = currentQuotaMode() === 'free';
   const engine = currentEngine();
-  $('cfg-baidu').classList.toggle('on', engine === 'baidu');
-  $('cfg-deepseek').classList.toggle('on', engine === 'deepseek');
+
+  $('sec-engine').classList.toggle('is-hidden', isFree);
+  $('cfg-baidu').classList.toggle('on', !isFree && engine === 'baidu');
+  $('cfg-deepseek').classList.toggle('on', !isFree && engine === 'deepseek');
 }
 
 function fill(cfg) {
@@ -39,12 +45,17 @@ function fill(cfg) {
   const radio = document.querySelector('input[name="engine"][value="' + (cfg.engine || 'google') + '"]');
   if (radio) radio.checked = true;
 
+  // 置灰的选项不参与回填，免得把用户困在一个不可用的模式上
+  const qRadio = document.querySelector('input[name="quotaMode"][value="' + (cfg.quotaMode || 'own') + '"]');
+  if (qRadio && !qRadio.disabled) qRadio.checked = true;
+
   syncEnginePanels();
 }
 
 function collect() {
   return {
     enabled: $('enabled').checked,
+    quotaMode: currentQuotaMode(),
     engine: currentEngine(),
     targetLang: $('targetLang').value,
     baiduAppId: $('baiduAppId').value.trim(),
@@ -90,6 +101,10 @@ function translate(text) {
 /* ---------- 事件 ---------- */
 
 document.querySelectorAll('input[name="engine"]').forEach((el) => {
+  el.addEventListener('change', syncEnginePanels);
+});
+
+document.querySelectorAll('input[name="quotaMode"]').forEach((el) => {
   el.addEventListener('change', syncEnginePanels);
 });
 

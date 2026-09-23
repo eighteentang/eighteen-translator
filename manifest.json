@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "划词翻译",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "选中网页文字即可翻译。支持 Google 免费接口、百度翻译、DeepSeek 三种引擎。",
   "permissions": ["storage"],
   "host_permissions": [
@@ -15,7 +15,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"],
+      "js": ["config.js", "content.js"],
       "run_at": "document_idle",
       "all_frames": true
     }

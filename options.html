@@ -59,6 +59,8 @@
     color: #ffffff;
     font-size: 11px;
   }
+  .badge.muted { background: var(--muted); }
+  .is-hidden { display: none; }
   h2 {
     margin: 0 0 10px;
     font-size: 13px;
@@ -94,6 +96,8 @@
   label.engine input { margin: 3px 0 0; flex: none; }
   label.engine .name { font-size: 14px; }
   label.engine .hint { display: block; color: var(--muted); font-size: 12px; }
+  label.engine.disabled { cursor: default; opacity: 0.55; }
+  label.engine.disabled .name { color: var(--muted); }
   .cfg { display: none; }
   .cfg.on { display: block; }
   .field { padding: 11px 0; }
@@ -168,6 +172,27 @@
   </section>
 
   <section>
+    <h2>服务模式</h2>
+    <div class="card">
+      <label class="engine">
+        <input type="radio" name="quotaMode" value="own">
+        <span>
+          <span class="name">使用自己的 API Key<span class="badge">默认</span></span>
+          <span class="hint">需自行申请凭据，翻译费用由自己承担</span>
+        </span>
+      </label>
+      <label class="engine disabled">
+        <input type="radio" name="quotaMode" value="free" disabled>
+        <span>
+          <span class="name">平台免费额度<span class="badge muted">测试中</span></span>
+          <span class="hint">无需任何配置，装上即用 —— 尚未开放</span>
+        </span>
+      </label>
+    </div>
+    <p class="note">平台免费额度由本扩展的服务端代付，目前仍在测试、暂未开放。在此之前请使用自己的 API Key。</p>
+  </section>
+
+  <section id="sec-engine">
     <h2>翻译引擎</h2>
     <div class="card">
       <label class="engine">
@@ -238,6 +263,7 @@
     <span id="status" class="status"></span>
   </div>
 </div>
+<script src="config.js"></script>
 <script src="options.js"></script>
 </body>
 </html>
