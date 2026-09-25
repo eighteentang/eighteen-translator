@@ -291,6 +291,7 @@
   let panel = null;
   let copyBtn = null;
   let altBtn = null;
+  let altAction = 'translate'; // translate | readOriginal
   let readBtn = null;      // 朗读译文（#10）
   let tagEl = null;
   let timer = null;
@@ -528,6 +529,7 @@
   function build() {
     panel.className = 'panel';   // 从手动模式的小图标切回来时要把 .mini 撤掉
     panel.textContent = '';
+    altAction = 'translate';
 
     const head = document.createElement('div');
     head.className = 'head';
@@ -547,6 +549,8 @@
     altBtn.className = 'btn';
     altBtn.type = 'button';
     altBtn.textContent = T.t('panel.altIdle');
+    altBtn.setAttribute('title', T.t('panel.altIdle'));
+    altBtn.setAttribute('aria-label', T.t('panel.altIdle'));
     altBtn.style.display = 'none';
     altBtn.addEventListener('click', onAlt);
 
@@ -773,6 +777,13 @@
     return lastTarget || cfg.targetLang;
   }
 
+  /* 朗读原文时重新做一次语言判定。这个按钮只会在「译成中文」这个
+     反向出口上出现，所以正常情况下一定能判出中文；判不出时仍回退首选语言。 */
+  function originalReadLang() {
+    const detected = LANGUTIL.detect(lastText);
+    return detected === 'unknown' ? cfg.preferredLang : detected;
+  }
+
   function setReadIcon(stop) {
     if (!readBtn) return;
     const ns = 'http://www.w3.org/2000/svg';
@@ -840,21 +851,14 @@
     paintRead();
   }
 
-  /* 点一下朗读 / 再点一下停止 —— 同一个按钮两种动作，与「复制」不一样
-     （复制是一次性的，没有「停止复制」这回事）。 */
-  function onRead() {
-    if (speaker && speaker.isSpeaking()) {
-      stopRead();
-      return;
-    }
+  /* 共同的朗读启动路径：译文和原文都要等语音列表、选音、处理无语音包，
+     只是在文本与语言上不同。 */
+  function startRead(text, lang) {
     if (!SPEAK) return;               // speak.js 没加载（不该发生，check.js 会挡）
     const synth = window.speechSynthesis;
     if (!synth) { speakHint(T.t('panel.noVoice')); return; }
-
-    const text = lastResult;
     if (!text) return;
 
-    const lang = readLang();
     stopRead();
     const my = readToken;
 
@@ -884,12 +888,34 @@
     });
   }
 
+  /* 点一下朗读 / 再点一下停止 —— 同一个按钮两种动作，与「复制」不一样
+     （复制是一次性的，没有「停止复制」这回事）。 */
+  function onRead() {
+    if (speaker && speaker.isSpeaking()) {
+      stopRead();
+      return;
+    }
+    startRead(lastResult, readLang());
+  }
+
+  function onReadOriginal() {
+    if (speaker && speaker.isSpeaking()) {
+      stopRead();
+      return;
+    }
+    startRead(lastText, originalReadLang());
+  }
+
   /* 「译成 X」：拿上一次的原文再翻一次，但强制换成另一种语言。
      这是语言判定的出口 —— 判定是启发式的，判错时用户得有一条不绕路的路。
 
      ⚠️ 换的是**当前配置这一对语言里的另一个**（#9），不是「LANGS 里随便另一个」——
      能翻译的语言有 11 种，从表里猜会切到一门用户根本没配过的语言。 */
   function onAlt() {
+    if (altAction === 'readOriginal') {
+      onReadOriginal();
+      return;
+    }
     if (!lastText || !lastTarget) return;
     request(lastText, LANGUTIL.other(lastTarget, cfg.preferredLang, cfg.targetLang));
   }
@@ -911,6 +937,7 @@
     stopRead();              // 同上：声音也要跟着停（#10）
     lastResult = '';
     lastTarget = '';
+    altAction = 'translate';
     dotText = text;
     curGap = MINI_GAP;
 
@@ -1006,9 +1033,15 @@
           tagEl.textContent = res.reversed ? T.t('panel.reversedTag', { base: base }) : base;
         }
         if (altBtn && lastTarget) {
-          altBtn.textContent = T.t('panel.altTo', {
-            lang: T.t('lang.' + LANGUTIL.other(lastTarget, cfg.preferredLang, cfg.targetLang))
-          });
+          const altTarget = LANGUTIL.other(lastTarget, cfg.preferredLang, cfg.targetLang);
+          const readOriginal = altTarget === 'zh' || altTarget === 'zh-Hant';
+          altAction = readOriginal ? 'readOriginal' : 'translate';
+          const altLabel = readOriginal
+            ? T.t('panel.readOriginal')
+            : T.t('panel.altTo', { lang: T.t('lang.' + altTarget) });
+          altBtn.textContent = altLabel;
+          altBtn.setAttribute('title', altLabel);
+          altBtn.setAttribute('aria-label', altLabel);
           altBtn.style.display = '';
         }
         // 有译文了，朗读按钮才出来（#10）—— 没结果之前它不显示
@@ -1066,6 +1099,7 @@
     stopRead();            // 出错了就别再念了（#10）
     lastResult = '';
     lastTarget = '';
+    altAction = 'translate';
     curGap = GAP;
     if (altBtn) altBtn.style.display = 'none';
     if (readBtn) readBtn.style.display = 'none';   // 没有译文可读（#10）

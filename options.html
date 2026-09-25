@@ -44,7 +44,7 @@
     font-size: 14px;
     line-height: 1.65;
   }
-  .wrap { max-width: 620px; margin: 0 auto; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
   h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
   .sub { margin: 0 0 22px; color: var(--muted); font-size: 13px; }
   .banner {
@@ -133,6 +133,49 @@
     font-family: inherit;
     font-size: 13px;
   }
+  .settings-layout {
+    display: grid;
+    grid-template-columns: 164px minmax(0, 1fr);
+    align-items: start;
+    gap: 24px;
+  }
+  .settings-nav {
+    position: sticky;
+    top: 18px;
+    display: grid;
+    gap: 4px;
+  }
+  .settings-nav button {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    text-align: left;
+  }
+  .settings-nav button:hover,
+  .settings-nav button[aria-current="true"] {
+    border-color: var(--line);
+    background: var(--card);
+    color: var(--fg);
+  }
+  .settings-content { min-width: 0; }
+  .setting-section { margin-bottom: 26px; }
+  .setting-section.hidden-by-tab { display: none; }
+  .step-range {
+    display: block;
+    width: 100%;
+    margin: 10px 0 2px;
+    accent-color: var(--accent);
+  }
+  .step-value {
+    display: block;
+    min-height: 1.65em;
+    color: var(--fg);
+    font-size: 13px;
+    font-weight: 600;
+  }
   /* 排除列表（#29）用等宽字体：一行一个域名，看错一个字母就是「加了没用」 */
   textarea {
     width: 100%;
@@ -151,11 +194,16 @@
     border-color: var(--accent);
   }
   .actions {
+    position: sticky;
+    top: 12px;
+    z-index: 2;
     display: flex;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
-    padding-top: 4px;
+    margin: 0 0 18px;
+    padding: 10px 0;
+    background: var(--bg);
   }
   button {
     padding: 8px 18px;
@@ -176,6 +224,7 @@
   .status { font-size: 13px; color: var(--muted); }
   .status.err { color: var(--danger); }
   .status.ok { color: var(--ok); }
+  .status:empty { display: none; }
   /* 凭据输入框 + 显示 / 隐藏按钮并排 —— 按钮不撑宽输入框（min-width: 0 是必须的，
      否则 flex 子项的默认最小宽度会按内容撑开） */
   .secret { display: flex; gap: 8px; }
@@ -246,6 +295,26 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 12px;
   }
+  @media (max-width: 700px) {
+    body { padding: 22px 14px 48px; }
+    .settings-layout { display: block; }
+    .settings-nav {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 6px 0 10px;
+      margin-bottom: 12px;
+      background: var(--bg);
+    }
+    .settings-nav button {
+      width: auto;
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+  }
 </style>
 </head>
 <body>
@@ -255,7 +324,23 @@
 
   <div class="banner" data-i18n="opt.banner"></div>
 
-  <section>
+  <div class="settings-layout">
+    <nav class="settings-nav" aria-label="Settings sections">
+      <button type="button" data-setting-tab="general" aria-current="true" data-i18n="opt.navGeneral"></button>
+      <button type="button" data-setting-tab="translation" aria-current="false" data-i18n="opt.navTranslation"></button>
+      <button type="button" data-setting-tab="appearance" aria-current="false" data-i18n="opt.navAppearance"></button>
+      <button type="button" data-setting-tab="usage" aria-current="false" data-i18n="opt.navUsage"></button>
+      <button type="button" data-setting-tab="sites" aria-current="false" data-i18n="opt.navSites"></button>
+    </nav>
+
+    <main class="settings-content">
+      <div class="actions">
+        <button id="save" data-i18n="opt.save"></button>
+        <button id="test" class="ghost" data-i18n="opt.test"></button>
+        <span id="status" class="status" role="status" aria-live="polite"></span>
+      </div>
+
+  <section class="setting-section" data-setting-group="general">
     <div class="card">
       <div class="row">
         <span class="label">
@@ -267,7 +352,7 @@
     </div>
   </section>
 
-  <section>
+  <section class="setting-section" data-setting-group="translation">
     <h2 data-i18n="opt.secMode"></h2>
     <div class="card">
       <label class="engine">
@@ -288,7 +373,7 @@
     <p class="note" data-i18n="opt.freeNote"></p>
   </section>
 
-  <section id="sec-engine">
+  <section id="sec-engine" class="setting-section" data-setting-group="translation">
     <h2 data-i18n="opt.secEngine"></h2>
     <div class="card">
       <label class="engine">
@@ -308,7 +393,7 @@
     </div>
   </section>
 
-  <section id="cfg-deepseek" class="cfg">
+  <section id="cfg-deepseek" class="setting-section cfg" data-setting-group="translation">
     <h2 data-i18n="opt.secKey"></h2>
     <div class="card">
       <div class="field">
@@ -323,7 +408,7 @@
     <p class="note" data-i18n="opt.keyNote2"></p>
   </section>
 
-  <section>
+  <section class="setting-section" data-setting-group="translation">
     <h2 data-i18n="opt.secDir"></h2>
     <div class="card">
       <div class="pair">
@@ -344,7 +429,7 @@
   </section>
 
   <!-- #35 界面语言。与「界面主题」相邻 —— 两者都是纯显示设置，改完立即生效。 -->
-  <section>
+  <section class="setting-section" data-setting-group="appearance">
     <h2 data-i18n="opt.secLang"></h2>
     <div class="card">
       <div class="field">
@@ -356,7 +441,7 @@
     <p class="note" data-i18n="opt.uiLangNote"></p>
   </section>
 
-  <section>
+  <section class="setting-section" data-setting-group="appearance">
     <h2 data-i18n="opt.secTheme"></h2>
     <div class="card">
       <div class="field">
@@ -372,18 +457,20 @@
   </section>
 
   <!-- #25 浮层外观。与「界面主题」相邻 —— 两者都是纯显示设置，改完立即生效。 -->
-  <section>
+  <section class="setting-section" data-setting-group="appearance">
     <h2 data-i18n="opt.secPanel"></h2>
     <div class="card">
       <div class="pair">
         <div class="pair-item">
           <label for="panelFont" data-i18n="opt.fontLabel"></label>
-          <select id="panelFont"></select>
+          <input id="panelFont" class="step-range" type="range" min="0" max="3" step="1" value="1">
+          <span id="panelFontValue" class="step-value" aria-live="polite"></span>
           <span class="desc" data-i18n="opt.fontDesc"></span>
         </div>
         <div class="pair-item">
           <label for="panelWidth" data-i18n="opt.widthLabel"></label>
-          <select id="panelWidth"></select>
+          <input id="panelWidth" class="step-range" type="range" min="0" max="2" step="1" value="1">
+          <span id="panelWidthValue" class="step-value" aria-live="polite"></span>
           <span class="desc" data-i18n="opt.widthDesc"></span>
         </div>
       </div>
@@ -392,7 +479,7 @@
   </section>
 
   <!-- #10 朗读。与「浮层外观」相邻 —— 都是「改完立即生效、只影响浮层」的设置。 -->
-  <section>
+  <section class="setting-section" data-setting-group="appearance">
     <h2 data-i18n="opt.secSpeak"></h2>
     <div class="card">
       <div class="pair">
@@ -413,7 +500,7 @@
 
   <!-- #18 用量统计 + #19 每日上限。两者共用 background.js 里的同一个计数器，
        所以放在同一节里 —— 用户看到的数字与拦他的数字必须是同一个。 -->
-  <section id="sec-usage">
+  <section id="sec-usage" class="setting-section" data-setting-group="usage">
     <h2 data-i18n="opt.secUsage"></h2>
     <div class="card">
       <div class="row">
@@ -443,7 +530,7 @@
 
   <!-- #60 跳过技术内容。默认开 —— 前提是浮层上永远有一个「仍然翻译」，
        否则「默认开」就等于替用户决定了「这段你不许翻」。 -->
-  <section>
+  <section class="setting-section" data-setting-group="general">
     <h2 data-i18n="opt.secTech"></h2>
     <div class="card">
       <div class="row">
@@ -459,7 +546,7 @@
 
   <!-- #6 触发方式。默认仍是自动 —— 手动是给「读长文嫌烦」的人用的，
        对多数人来说多一次点击是净损失。 -->
-  <section>
+  <section class="setting-section" data-setting-group="general">
     <h2 data-i18n="opt.secTrigger"></h2>
     <div class="card">
       <label class="engine">
@@ -483,7 +570,7 @@
   <!-- #29 排除站点。
        ⚠️ 文案里**不能**写「不注入」—— 内容脚本是 manifest 声明的，一定会被注入。
        能做到的是「注入后什么都不做」，所以说的是「不翻译 / 不发请求」。 -->
-  <section>
+  <section class="setting-section" data-setting-group="sites">
     <h2 data-i18n="opt.secSites"></h2>
     <div class="card">
       <div class="field">
@@ -500,10 +587,7 @@
   <!-- #45 多设备同步：明确不做，但必须说清楚，否则用户会以为「登同一个账号就同步」 -->
   <p class="note" data-i18n="opt.localOnly"></p>
 
-  <div class="actions">
-    <button id="save" data-i18n="opt.save"></button>
-    <button id="test" class="ghost" data-i18n="opt.test"></button>
-    <span id="status" class="status"></span>
+    </main>
   </div>
 
   <div class="foot">

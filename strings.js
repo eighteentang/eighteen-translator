@@ -53,6 +53,7 @@
       /* 朗读（#10）。只有一个朗读译文的图标按钮，读的过程中变成停止图标；
          title / aria-label 仍然需要这两条文案。 */
       'panel.readOut': '朗读译文',
+      'panel.readOriginal': '朗读原文',
       'panel.stopRead': '停止',
       'panel.noVoice': '这台设备没有可用的语音包，朗读不可用',
       'panel.noVoiceLang': '没有{lang}的语音包',
@@ -116,6 +117,7 @@
       'step.sm': '小',
       'step.md': '中',
       'step.lg': '大',
+      'step.xl': '特大',
       'step.narrow': '窄',
       'step.wide': '宽',
       // 朗读语速档位（#10，config.js 的 RATE_STEPS）
@@ -161,6 +163,11 @@
 
       'opt.enabled': '启用划词翻译',
       'opt.enabledDesc': '关闭后所有网页都不再触发',
+      'opt.navGeneral': '常规',
+      'opt.navTranslation': '翻译',
+      'opt.navAppearance': '外观',
+      'opt.navUsage': '用量',
+      'opt.navSites': '站点',
 
       'opt.secMode': '服务模式',
       'opt.ownKey': '使用自己的 API Key',
@@ -350,6 +357,7 @@
       'panel.copyFail': 'Copy failed',
       'panel.close': 'Close',
       'panel.readOut': 'Read translation',
+      'panel.readOriginal': 'Read original',
       'panel.stopRead': 'Stop',
       'panel.noVoice': 'No speech voices are available on this device',
       'panel.noVoiceLang': 'No {lang} voice is installed',
@@ -412,6 +420,7 @@
       'step.sm': 'Small',
       'step.md': 'Medium',
       'step.lg': 'Large',
+      'step.xl': 'Extra large',
       'step.narrow': 'Narrow',
       'step.wide': 'Wide',
       'step.slow': 'Slow',
@@ -453,6 +462,11 @@
 
       'opt.enabled': 'Enable select-to-translate',
       'opt.enabledDesc': 'When off, nothing triggers on any page',
+      'opt.navGeneral': 'General',
+      'opt.navTranslation': 'Translation',
+      'opt.navAppearance': 'Appearance',
+      'opt.navUsage': 'Usage',
+      'opt.navSites': 'Sites',
 
       'opt.secMode': 'Service mode',
       'opt.ownKey': 'Use your own API key',

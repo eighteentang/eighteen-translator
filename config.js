@@ -91,9 +91,9 @@
        存的是**档位名**而不是像素值 —— 像素值是实现细节，将来想微调某一档时，
        老用户存储里的 'md' 仍然成立；存 '14px' 就得写迁移了。
 
-       三档足够：用户需要的是「大一点 / 窄一点」，不是精确值。
-       具体像素值见下面的 FONT_STEPS / WIDTH_STEPS，设置页的下拉按同一张表渲染。 */
-    panelFont: 'md',    // sm 13 | md 14 | lg 16
+       字号用四档，用户需要的是「大一点 / 小一点」，不是精确值。
+       具体像素值见下面的 FONT_STEPS / WIDTH_STEPS，设置页的滑块按同一张表渲染。 */
+    panelFont: 'md',    // sm 10 | md 14 | lg 18 | xl 24
     panelWidth: 'md',   // narrow 320 | md 420 | wide 560
 
     /* 朗读（#10）—— 用浏览器内置的 speechSynthesis，离线、不花钱、不需要权限。
@@ -132,7 +132,7 @@
   /* 字号 / 最大宽度的档位表（#25）。
 
      为什么放在这里、而不是只写在 content.js 的 CSS 旁边：
-     设置页的下拉要按**同一张表**渲染。各写一份的话，某天把某一档从 14px
+     设置页的滑块要按**同一张表**渲染。各写一份的话，某天把某一档从 14px
      改成 15px，下拉里会一直写着 14px —— 而且**不会报错**。
      这与 todayKey 是同一类坑：两个地方各存一份「同一个事实」。
 
@@ -143,9 +143,10 @@
      的硬编码 —— 界面切成英文时下拉会显示成「Small（13px）」里的中文，
      而且不会报错。 */
   const FONT_STEPS = [
-    { id: 'sm', px: 13 },
+    { id: 'sm', px: 10 },
     { id: 'md', px: 14 },
-    { id: 'lg', px: 16 }
+    { id: 'lg', px: 18 },
+    { id: 'xl', px: 24 }
   ];
 
   const WIDTH_STEPS = [
@@ -166,13 +167,15 @@
   ];
 
   /* 按档位名取某个字段。认不出的值（老配置、手改的存储、将来删掉的档）
-     退回**中间那档** —— 比退回第一档好：中间档在视觉上最不容易出错，
-     而且它一定是默认值那一档。 */
+     优先退回 md / normal 这类明确的默认档；没有明确默认档时才取中间位置。 */
   function stepOf(list, id, key) {
     for (let i = 0; i < list.length; i++) {
       if (list[i].id === id) return list[i][key];
     }
-    return list[Math.floor(list.length / 2)][key];
+    const fallback = list.find((s) => s.id === 'md')
+      || list.find((s) => s.id === 'normal')
+      || list[Math.floor((list.length - 1) / 2)];
+    return fallback[key];
   }
 
   const stepPx = (list, id) => stepOf(list, id, 'px');

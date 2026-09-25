@@ -785,7 +785,7 @@ function check(name, cond, extra) {
   const SPEAK_KEYS = ['step.slow', 'step.normal', 'step.fast', 'opt.secSpeak', 'opt.speakRate',
     'opt.speakRateDesc', 'opt.speakAccent', 'opt.speakAccentDesc', 'opt.accentAuto',
     'opt.accentUS', 'opt.accentGB', 'opt.speakNote',
-    'panel.readOut', 'panel.stopRead', 'panel.noVoice', 'panel.noVoiceLang',
+    'panel.readOut', 'panel.readOriginal', 'panel.stopRead', 'panel.noVoice', 'panel.noVoiceLang',
     'panel.readFail'];
   const speakMissKey = SPEAK_KEYS.filter((k) => !(k in SPEAK_ZH) || !(k in SPEAK_EN));
   check('朗读：语速 / 口音 / 浮层按钮的文案键都在（zh 与 en）（#10）',
@@ -829,8 +829,9 @@ function check(name, cond, extra) {
     CFG.stepPx(CFG.FONT_STEPS, CFG.DEFAULTS.panelFont) + 'px / '
       + CFG.stepPx(CFG.WIDTH_STEPS, CFG.DEFAULTS.panelWidth) + 'px');
 
-  check('字号与宽度各三档，且都包含默认那一档（#25）',
-    CFG.FONT_STEPS.length === 3 && CFG.WIDTH_STEPS.length === 3
+  check('字号四档、宽度三档，且都包含默认那一档（#25）',
+    CFG.FONT_STEPS.length === 4 && CFG.WIDTH_STEPS.length === 3
+      && CFG.FONT_STEPS.map((s) => s.px).join(',') === '10,14,18,24'
       && CFG.FONT_STEPS.some((s) => s.id === CFG.DEFAULTS.panelFont)
       && CFG.WIDTH_STEPS.some((s) => s.id === CFG.DEFAULTS.panelWidth),
     CFG.FONT_STEPS.map((s) => s.id + '=' + s.px).join(' ')

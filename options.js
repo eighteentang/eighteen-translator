@@ -65,6 +65,16 @@ function syncEnginePanels() {
   $('cfg-deepseek').classList.toggle('on', !isFree && engine === 'deepseek');
 }
 
+function setActiveSection(group) {
+  document.querySelectorAll('[data-setting-tab]').forEach((button) => {
+    const active = button.dataset.settingTab === group;
+    button.setAttribute('aria-current', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.setting-section').forEach((section) => {
+    section.classList.toggle('hidden-by-tab', section.dataset.settingGroup !== group);
+  });
+}
+
 /* 两个下拉的选项由 lang.js 的 LANGS 渲染 —— 加语言只改那一处，这里不用动。 */
 function renderLangSelects() {
   ['preferredLang', 'targetLang'].forEach((id) => {
@@ -102,7 +112,7 @@ function renderUiLangSelect() {
   T.UI_LANGS.forEach((code) => add(code, t('lang.' + code)));
 }
 
-/* 三个「选项由代码渲染」的下拉（界面语言 / 翻译方向 / 浮层档位）。
+/* 三个「选项由代码渲染」的控件（界面语言 / 翻译方向 / 浮层档位）。
 
    ⚠️ 它们的选项文案都走 t()，所以**每次界面语言变了都必须重画一遍** ——
    否则会停在「页面是英文、下拉里还是中文」这种半截状态。
@@ -110,36 +120,80 @@ function renderUiLangSelect() {
 function renderSelects() {
   renderUiLangSelect();
   renderLangSelects();
-  renderStepSelects();
+  renderStepControls();
   renderAccentSelect();
 }
 
-/* 字号 / 宽度的下拉也按**同一张表**渲染（#25）——
+const STEP_TABLES = {
+  panelFont: globalThis.WT_CONFIG.FONT_STEPS,
+  panelWidth: globalThis.WT_CONFIG.WIDTH_STEPS,
+  speakRate: globalThis.WT_CONFIG.RATE_STEPS
+};
+
+function defaultStepIndex(list) {
+  const fallback = list.find((s) => s.id === 'md')
+    || list.find((s) => s.id === 'normal');
+  return fallback ? list.indexOf(fallback) : Math.floor((list.length - 1) / 2);
+}
+
+function stepIndex(id, stepId) {
+  const list = STEP_TABLES[id];
+  const found = list.findIndex((s) => s.id === stepId);
+  return found >= 0 ? found : defaultStepIndex(list);
+}
+
+function selectedStepId(id) {
+  const input = $(id);
+  const list = STEP_TABLES[id];
+  const n = Math.max(0, Math.min(list.length - 1, Number(input.value) || 0));
+  return list[n].id;
+}
+
+function updateStepValue(id) {
+  const input = $(id);
+  const output = $(id + 'Value');
+  if (!input || !output || !STEP_TABLES[id]) return;
+  const list = STEP_TABLES[id];
+  const step = list[Math.max(0, Math.min(list.length - 1, Number(input.value) || 0))];
+  const label = t('step.' + step.id);
+  output.textContent = label;
+  input.setAttribute('aria-valuetext', label);
+}
+
+function setStepRange(id, stepId) {
+  const input = $(id);
+  if (!input || !STEP_TABLES[id]) return;
+  input.value = String(stepIndex(id, stepId));
+  updateStepValue(id);
+}
+
+/* 字号 / 宽度的滑块按**同一张表**渲染（#25）——
    表在 config.js，content.js 的 CSS 变量用的是同一个 stepPx()。
-   像素值写进选项文案（「中（14px）」），是因为「大一点」没有参照物；
-   但它是从表里读出来的，不是抄在 HTML 里的，改档位不会对不上。
+   设置页只显示档位名，不显示像素值；真实像素值只留在配置表和内容脚本。
 
    朗读语速（#10）用同一张表的另一列：它没有像素值，所以**不能**复用
-   opt.stepOption 那句「（14px）」的模板，只写档位名。 */
-function renderStepSelects() {
-  const map = {
-    panelFont: globalThis.WT_CONFIG.FONT_STEPS,
-    panelWidth: globalThis.WT_CONFIG.WIDTH_STEPS,
-    speakRate: globalThis.WT_CONFIG.RATE_STEPS
-  };
-  Object.keys(map).forEach((id) => {
-    const sel = $(id);
-    sel.textContent = '';
-    const withPx = id !== 'speakRate';
-    map[id].forEach((s) => {
-      const o = document.createElement('option');
-      o.value = s.id;
-      // 档位名（小 / 中 / 大 / 慢 / 正常 / 快）在 strings.js 里
-      o.textContent = withPx
-        ? t('opt.stepOption', { name: t('step.' + s.id), px: s.px })
-        : t('step.' + s.id);
-      sel.appendChild(o);
-    });
+   只写档位名。 */
+function renderStepControls() {
+  ['panelFont', 'panelWidth'].forEach((id) => {
+    const input = $(id);
+    const list = STEP_TABLES[id];
+    input.min = '0';
+    input.max = String(list.length - 1);
+    input.step = '1';
+    if (!Number.isInteger(Number(input.value)) || Number(input.value) < 0
+      || Number(input.value) >= list.length) {
+      input.value = String(defaultStepIndex(list));
+    }
+    updateStepValue(id);
+  });
+
+  const sel = $('speakRate');
+  sel.textContent = '';
+  STEP_TABLES.speakRate.forEach((s) => {
+    const o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = t('step.' + s.id);
+    sel.appendChild(o);
   });
 }
 
@@ -237,8 +291,8 @@ function fill(cfg) {
   $('preferredLang').value = cfg.preferredLang || 'zh';
   $('targetLang').value = cfg.targetLang || 'en';
   $('theme').value = cfg.theme || 'auto';
-  $('panelFont').value = cfg.panelFont || 'md';
-  $('panelWidth').value = cfg.panelWidth || 'md';
+  setStepRange('panelFont', cfg.panelFont || 'md');
+  setStepRange('panelWidth', cfg.panelWidth || 'md');
   $('speakRate').value = cfg.speakRate || 'normal';
   $('speakAccent').value = ['auto', 'en-US', 'en-GB'].indexOf(cfg.speakAccent) >= 0 ? cfg.speakAccent : 'auto';
   $('excludeSites').value = cfg.excludeSites || '';
@@ -273,8 +327,8 @@ function collect() {
     /* 界面语言（#35）：存**偏好**（'auto' / 'zh' / 'en'），不存解析结果 ——
        存 'zh' 的话，用户换了浏览器语言就永远回不到「跟随」了。 */
     uiLang: $('uiLang').value,
-    panelFont: $('panelFont').value,
-    panelWidth: $('panelWidth').value,
+    panelFont: selectedStepId('panelFont'),
+    panelWidth: selectedStepId('panelWidth'),
     /* 朗读（#10）：语速存档位名（slow / normal / fast），口音存
        'auto' / 'en-US' / 'en-GB' —— 后者是**语音包的标识**，不是界面文案。 */
     speakRate: $('speakRate').value,
@@ -291,10 +345,23 @@ function collect() {
   };
 }
 
+let statusTimer = null;
+
 function setStatus(text, kind) {
+  if (statusTimer) {
+    clearTimeout(statusTimer);
+    statusTimer = null;
+  }
   const el = $('status');
   el.textContent = text;
   el.className = 'status' + (kind ? ' ' + kind : '');
+  if (kind === 'ok') {
+    statusTimer = setTimeout(() => {
+      statusTimer = null;
+      el.textContent = '';
+      el.className = 'status';
+    }, 2500);
+  }
 }
 
 /* 上一次保存时的排除列表原文（#29）。
@@ -502,6 +569,12 @@ $('diag').addEventListener('click', () => {
 
 /* ---------- 事件 ---------- */
 
+document.querySelectorAll('[data-setting-tab]').forEach((button) => {
+  button.addEventListener('click', () => setActiveSection(button.dataset.settingTab));
+});
+
+setActiveSection('general');
+
 document.querySelectorAll('input[name="engine"]').forEach((el) => {
   el.addEventListener('change', syncEnginePanels);
 });
@@ -543,15 +616,15 @@ $('theme').addEventListener('change', () => {
    它改的就是这一页本身，要是还要再点一次保存，用户会以为没生效。
 
    ⚠️ 光换 setLang + applyI18n 不够。这一页里还有三处**由 JS 渲染**的文字：
-     ① 三个下拉的选项文案（renderSelects）
+     ① 动态控件的选项文案（renderSelects）
      ② checkLangs / checkSites / 用量那几行的动态说明
      ③ document.title
    少刷任何一处，用户就会看到半截语言 —— 而这在源码里完全看不出来。
-   ⚠️ renderSelects() 会清掉下拉的选中值，所以重画之后要把值设回去。 */
+   ⚠️ renderSelects() 会重画动态控件，所以重画之后要把值和当前档位文案设回去。 */
 $('uiLang').addEventListener('change', () => {
   const pref = $('uiLang').value;
 
-  /* 先记下另外几个下拉当前选的是什么 —— renderSelects() 会清空并重建它们，
+  /* 先记下另外几个控件当前选的是什么 —— renderSelects() 会重画它们，
      不记的话用户的「翻译方向」「浮层档位」「朗读语速 / 口音」会被悄悄重置。
      ⚠️ 这里列的是**所有由 renderSelects() 重建的下拉**（除了 uiLang 自己）——
      漏一个不会报错，只会在切界面语言时把它悄悄改掉。 */
@@ -565,6 +638,8 @@ $('uiLang').addEventListener('change', () => {
   renderSelects();
   $('uiLang').value = pref;
   Object.keys(keep).forEach((id) => { $(id).value = keep[id]; });
+  updateStepValue('panelFont');
+  updateStepValue('panelWidth');
   checkLangs();
   checkSites();
   renderUsage();
@@ -578,14 +653,27 @@ $('uiLang').addEventListener('change', () => {
 /* 字号 / 宽度 / 朗读语速与主题一样是**纯显示设置**：改完立即保存、立即生效（#25 / #10）。
    这一页上看不到效果（浮层在网页里），所以更不该再要求一次「保存」点击 ——
    用户会以为没生效，然后回去重新选一遍。 */
-['panelFont', 'panelWidth', 'speakRate', 'speakAccent'].forEach((id) => {
+function saveImmediateSetting(id) {
+  if (!hasExt) return;
+  const patch = {};
+  patch[id] = STEP_TABLES[id] && id !== 'speakRate'
+    ? selectedStepId(id)
+    : $(id).value;
+  chrome.storage.local.set(patch)
+    .then(() => setStatus(t('opt.saved'), 'ok'))
+    .catch((e) => setStatus(t('opt.saveFail', { msg: e.message }), 'err'));
+}
+
+['panelFont', 'panelWidth'].forEach((id) => {
+  $(id).addEventListener('input', () => updateStepValue(id));
   $(id).addEventListener('change', () => {
-    if (!hasExt) return;
-    const patch = {};
-    patch[id] = $(id).value;
-    chrome.storage.local.set(patch)
-      .then(() => setStatus(t('opt.saved'), 'ok'))
-      .catch((e) => setStatus(t('opt.saveFail', { msg: e.message }), 'err'));
+    saveImmediateSetting(id);
+  });
+});
+
+['speakRate', 'speakAccent'].forEach((id) => {
+  $(id).addEventListener('change', () => {
+    saveImmediateSetting(id);
   });
 });
 

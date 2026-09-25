@@ -36,6 +36,7 @@ const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 </style></head><body>
 <p id="p1">Translation is the communication of meaning from one language to another. A translator must decide whether to preserve form or sense.</p>
 <p id="p2">The quick brown fox jumps over the lazy dog near the riverbank at dawn.</p>
+<p id="pZh">这是一段足够长的中文文本，用来验证中文原文朗读入口不会再次发起翻译请求。</p>
 <!-- #22 的样本：第一行**明显比第二行短**。
      用整段包围盒的中心定位，浮层会跑到第二行中间；用首行的中心才是用户眼睛所在的地方。 -->
 <p id="ragged">Short first line.<br>But the second line goes on and on and is much wider than the first one.</p>
@@ -865,8 +866,8 @@ async function main() {
       await selectAndMouseUp(page, 'p2');
       await sleep(1400);
       const big = await sizeOf();
-      ok('大 / 宽档：字号 16px，宽度被上限 560px 卡住（#25）',
-        !!big && big.fs === '16px' && big.mw === '560px'
+      ok('大 / 宽档：字号 18px，宽度被上限 560px 卡住（#25）',
+        !!big && big.fs === '18px' && big.mw === '560px'
           && big.w >= 558 && big.w <= 560,
         big ? `字号=${big.fs} 上限=${big.mw} 实测宽=${big.w} 内容=${JSON.stringify(big.text)}` : '没找到 .panel');
 
@@ -876,7 +877,7 @@ async function main() {
       await sleep(500);
       const small = await sizeOf();
       ok('浮层开着时改设置，它当场跟着变（不重新划词、不刷新页面）（#25）',
-        !!small && small.fs === '13px' && small.mw === '320px'
+        !!small && small.fs === '10px' && small.mw === '320px'
           && small.w >= 318 && small.w <= 320,
         small ? `字号=${small.fs} 上限=${small.mw} 实测宽=${small.w} 内容=${JSON.stringify(small.text)}` : '没找到 .panel');
 
@@ -884,7 +885,7 @@ async function main() {
          写到 documentElement 上就是 content script 改了页面的样式 ——
          哪怕同名概率低，也是把自己的实现细节泄进页面的作用域。 */
       ok('CSS 变量写在宿主元素上，没有污染页面（#25）',
-        !!big && big.hostVar === '16px' && big.pageVar === '',
+        !!big && big.hostVar === '18px' && big.pageVar === '',
         big ? `宿主=${JSON.stringify(big.hostVar)} 页面=${JSON.stringify(big.pageVar)}` : '');
 
       // 还原成默认档，别影响后面的用例
@@ -1014,6 +1015,49 @@ async function main() {
       ok('朗读按钮回到初始态（不会卡在「停止」）（#10）',
         !readBack.speaking, JSON.stringify(readBack.labels));
 
+      /* 中文选区的「译成中文」是把原文翻回原语言，没有实际价值。
+         #10 的最新要求把这个出口改成「朗读原文」，并且不能再发翻译请求。 */
+      await worker.evaluate(() => chrome.storage.local.set({
+        preferredLang: 'en', targetLang: 'zh'
+      }));
+      await sleep(400);
+      await selectAndMouseUp(page, 'pZh');
+      await sleep(1400);
+      const zhAlt = await page.evaluate(() => {
+        const el = document.getElementById('wt-translate-host');
+        const sr = el && el.shadowRoot;
+        const btn = sr && Array.from(sr.querySelectorAll('.tools .btn'))
+          .find((b) => !b.classList.contains('icon-btn')
+            && !/复制|Copy|关闭|Close/.test(b.textContent));
+        return btn ? {
+          text: btn.textContent,
+          label: btn.getAttribute('aria-label'),
+          title: btn.getAttribute('title'),
+          box: (() => {
+            const r = btn.getBoundingClientRect();
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+          })()
+        } : null;
+      });
+      ok('中文选区把「译成中文」改成「朗读原文」（#10）',
+        !!zhAlt && ['朗读原文', 'Read original'].indexOf(zhAlt.text) >= 0
+          && zhAlt.label === zhAlt.text && zhAlt.title === zhAlt.text,
+        JSON.stringify(zhAlt));
+      const beforeOriginalRead = await worker.evaluate(() => globalThis.__wtCalls.length);
+      if (zhAlt) await page.mouse.click(zhAlt.box.x, zhAlt.box.y);
+      await sleep(900);
+      const afterOriginalRead = await worker.evaluate(() => globalThis.__wtCalls.length);
+      const originalReadState = await readState();
+      ok('点击「朗读原文」不再发起反向翻译请求，并且有朗读反馈（#10）',
+        !!zhAlt && afterOriginalRead === beforeOriginalRead
+          && (originalReadState.speaking || !!originalReadState.hint),
+        JSON.stringify({ calls: beforeOriginalRead + ' → ' + afterOriginalRead, state: originalReadState }));
+      if (originalReadState.speaking) {
+        const stopOriginal = await speakBox();
+        if (stopOriginal) await page.mouse.click(stopOriginal.x, stopOriginal.y);
+        await sleep(300);
+      }
+
 
       /* ---- 排除站点（#29）----
          ⚠️ 内容脚本是 manifest 声明的（matches: <all_urls>），**一定会被注入** ——
@@ -1090,6 +1134,67 @@ async function main() {
         `上边缘对齐=${oInfo.sameRow} · 水平间距=${oInfo.gap}px`);
       ok('设置页也带上了主题属性',
         oInfo.theme === 'light' || oInfo.theme === 'dark', `data-theme=${oInfo.theme}`);
+
+      /* ---- 配置页分组导航与保存提示（#62）---- */
+      const navUi = await opt.evaluate(async () => {
+        const buttons = Array.from(document.querySelectorAll('[data-setting-tab]'));
+        const groups = ['general', 'translation', 'appearance', 'usage', 'sites'];
+        const visible = () => groups.filter((group) => Array.from(
+          document.querySelectorAll('[data-setting-group="' + group + '"]')
+        ).some((el) => !el.classList.contains('hidden-by-tab')));
+        const nav = document.querySelector('.settings-nav');
+        const content = document.querySelector('.settings-content');
+        const desktop = nav && content
+          ? nav.getBoundingClientRect().left < content.getBoundingClientRect().left
+          : false;
+
+        buttons.find((b) => b.dataset.settingTab === 'translation').click();
+        const translation = visible();
+        buttons.find((b) => b.dataset.settingTab === 'appearance').click();
+        const appearance = visible();
+        buttons.find((b) => b.dataset.settingTab === 'general').click();
+        const general = visible();
+
+        const save = document.getElementById('save');
+        const status = document.getElementById('status');
+        save.click();
+        await new Promise((r) => setTimeout(r, 150));
+        const immediate = status ? status.textContent : '';
+        await new Promise((r) => setTimeout(r, 2700));
+        const after = status ? status.textContent : '';
+
+        return {
+          buttonCount: buttons.length,
+          desktop,
+          translation,
+          appearance,
+          general,
+          immediate,
+          after,
+        };
+      });
+      ok('配置页有五个父级菜单，桌面端左侧导航与右侧内容分栏（#62）',
+        navUi.buttonCount === 5 && navUi.desktop
+          && navUi.translation.join(',') === 'translation'
+          && navUi.appearance.join(',') === 'appearance'
+          && navUi.general.join(',') === 'general',
+        JSON.stringify(navUi));
+      ok('保存成功提示会出现并在约 2–3 秒后自动消失（#62）',
+        /保存|saved/i.test(navUi.immediate) && navUi.after === '',
+        JSON.stringify({ immediate: navUi.immediate, after: navUi.after }));
+
+      await opt.setViewport({ width: 420, height: 800 });
+      const mobileLayout = await opt.evaluate(() => ({
+        noHorizontalOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
+        navScrollable: (() => {
+          const el = document.querySelector('.settings-nav');
+          return !!el && el.scrollWidth >= el.clientWidth;
+        })(),
+      }));
+      ok('窄窗口下配置页不横向溢出，菜单可横向滚动（#62）',
+        mobileLayout.noHorizontalOverflow && mobileLayout.navScrollable,
+        JSON.stringify(mobileLayout));
+      await opt.setViewport({ width: 1280, height: 900 });
 
       // 设置页页脚：版本号（用户报问题时唯一的「我装的是哪一版」凭证）+ 反馈入口
       const oFoot = await opt.evaluate(() => ({
@@ -1238,35 +1343,56 @@ async function main() {
       ok('设置页有「自动 / 手动」二选一，默认自动，选手动后真的写进存储（#6）',
         tm.has && tm.checked === 'auto' && tm.stored === 'manual', JSON.stringify(tm));
 
-      /* ---- 浮层外观：设置页的两个下拉（#25）----
-         选项由 config.js 的档位表渲染（与 content.js 的 CSS 变量同一张表），
-         所以这里既查「三档都在」，也查「改完不点保存就写进了存储」——
-         它是纯显示设置，还要求再点一次保存的话，用户会以为没生效。 */
+      /* ---- 浮层外观：设置页的两个横向滑块（#25）----
+         档位由 config.js 的同一张表驱动，设置页只显示档位名，不显示像素值。
+         它是纯显示设置，改完不点保存也要立即写进存储。 */
       const sz = await opt.evaluate(async () => {
         const f = document.getElementById('panelFont');
         const w = document.getElementById('panelWidth');
         const wait = () => new Promise((r) => setTimeout(r, 300));
-        const opts = f ? Array.from(f.options).map((o) => o.value) : [];
-        const wOpts = w ? Array.from(w.options).map((o) => o.value) : [];
-        const labels = f ? Array.from(f.options).map((o) => o.textContent) : [];
-        const before = f ? f.value : null;
-        if (w) { w.value = 'wide'; w.dispatchEvent(new Event('change')); }
+        const before = {
+          font: f ? f.value : null,
+          width: w ? w.value : null,
+          fontLabel: (document.getElementById('panelFontValue') || {}).textContent || '',
+          widthLabel: (document.getElementById('panelWidthValue') || {}).textContent || '',
+        };
+        if (f) { f.value = '3'; f.dispatchEvent(new Event('input')); f.dispatchEvent(new Event('change')); }
+        if (w) { w.value = '2'; w.dispatchEvent(new Event('input')); w.dispatchEvent(new Event('change')); }
         await wait();
-        const stored = (await chrome.storage.local.get({ panelWidth: null })).panelWidth;
-        if (w) { w.value = 'md'; w.dispatchEvent(new Event('change')); }
+        const stored = await chrome.storage.local.get({ panelFont: null, panelWidth: null });
+        const changed = {
+          font: f ? f.value : null,
+          width: w ? w.value : null,
+          fontLabel: (document.getElementById('panelFontValue') || {}).textContent || '',
+          widthLabel: (document.getElementById('panelWidthValue') || {}).textContent || '',
+        };
+        if (f) { f.value = '1'; f.dispatchEvent(new Event('input')); f.dispatchEvent(new Event('change')); }
+        if (w) { w.value = '1'; w.dispatchEvent(new Event('input')); w.dispatchEvent(new Event('change')); }
         await wait();
-        const back = (await chrome.storage.local.get({ panelWidth: null })).panelWidth;
-        return { opts, wOpts, labels, before, stored, back };
+        const back = await chrome.storage.local.get({ panelFont: null, panelWidth: null });
+        return {
+          has: !!f && !!w,
+          fontRange: f ? { min: f.min, max: f.max, step: f.step } : null,
+          widthRange: w ? { min: w.min, max: w.max, step: w.step } : null,
+          before, changed, stored, back,
+        };
       });
-      ok('设置页有「字号 / 最大宽度」两个三档下拉，默认中间档（#25）',
-        sz.opts.join(',') === 'sm,md,lg' && sz.wOpts.join(',') === 'narrow,md,wide'
-          && sz.before === 'md',
-        `字号=${sz.opts.join(',')} 宽度=${sz.wOpts.join(',')} 当前=${sz.before}`);
-      ok('档位下拉里带上了像素值（「大一点」没有参照物）（#25）',
-        /px/.test(sz.labels.join(' ')), sz.labels.join(' / '));
+      ok('设置页有字号四档 / 宽度三档横向滑块，默认中间档（#25）',
+        sz.has
+          && sz.fontRange.min === '0' && sz.fontRange.max === '3' && sz.fontRange.step === '1'
+          && sz.widthRange.min === '0' && sz.widthRange.max === '2' && sz.widthRange.step === '1'
+          && sz.before.font === '1' && sz.before.width === '1',
+        JSON.stringify(sz));
+      ok('字号与宽度控件只显示档位名，不显示像素值（#25）',
+        /^(小|中|大|特大|Small|Medium|Large|Extra large)$/.test(sz.changed.fontLabel)
+          && /^(窄|中|宽|Narrow|Medium|Wide)$/.test(sz.changed.widthLabel)
+          && !/px/i.test(sz.changed.fontLabel + sz.changed.widthLabel),
+        `${sz.changed.fontLabel} / ${sz.changed.widthLabel}`);
       ok('改浮层外观不点保存也立即写进存储（#25）',
-        sz.stored === 'wide' && sz.back === 'md',
-        `${sz.before} → ${sz.stored} → ${sz.back}`);
+        sz.stored.panelFont === 'xl' && sz.stored.panelWidth === 'wide'
+          && sz.back.panelFont === 'md' && sz.back.panelWidth === 'md',
+        `${sz.before.font}/${sz.before.width} → ${sz.stored.panelFont}/${sz.stored.panelWidth}`
+          + ` → ${sz.back.panelFont}/${sz.back.panelWidth}`);
 
       /* ---- 朗读的设置项（#10）----
          两个下拉：语速（三档）与英语口音（跟随系统 / 美式 / 英式）。
@@ -1473,7 +1599,7 @@ async function main() {
           font: document.getElementById('panelFont').value,
           rate: document.getElementById('speakRate').value,
           accent: document.getElementById('speakAccent').value,
-          stepText: document.getElementById('panelFont').options[0].textContent,
+          stepText: document.getElementById('panelFontValue').textContent,
         };
         const s = document.getElementById('uiLang');
         s.value = 'en';
@@ -1482,7 +1608,7 @@ async function main() {
         const after = {
           h1: (document.querySelector('[data-i18n="opt.h1"]') || {}).textContent || '',
           secLang: (document.querySelector('[data-i18n="opt.secLang"]') || {}).textContent || '',
-          stepText: document.getElementById('panelFont').options[0].textContent,
+          stepText: document.getElementById('panelFontValue').textContent,
           dirText: document.getElementById('preferredLang').options[0].textContent,
           dir: document.getElementById('preferredLang').value,
           font: document.getElementById('panelFont').value,
@@ -1521,7 +1647,7 @@ async function main() {
         await new Promise((r) => setTimeout(r, 250));
         return {
           h1: (document.querySelector('[data-i18n="opt.h1"]') || {}).textContent || '',
-          stepText: document.getElementById('panelFont').options[0].textContent,
+          stepText: document.getElementById('panelFontValue').textContent,
           htmlLang: document.documentElement.getAttribute('lang'),
           stored: (await chrome.storage.local.get({ uiLang: '' })).uiLang,
         };
