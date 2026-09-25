@@ -24,7 +24,12 @@ const path = require('path');
 const os = require('os');
 const http = require('http');
 
-const EXT = path.resolve(__dirname, '..');
+/* 默认验工作目录；`WT_EXT_DIR=<目录>` 可以指到别处。
+   用途：验 `dev/pack.js` 打出来的包到底能不能跑 —— 把 zip 解到一个临时目录，
+   用 `WT_EXT_DIR=<那个目录> node dev/e2e-panel.js` 再跑一遍（见 #37）。 */
+const EXT = process.env.WT_EXT_DIR
+  ? path.resolve(process.env.WT_EXT_DIR)
+  : path.resolve(__dirname, '..');
 const PORT = 8971;
 
 const PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">

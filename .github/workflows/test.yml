@@ -26,3 +26,8 @@ jobs:
       # 再跑后台逻辑断言（#1 / #2 的取消与语言判定都在这里）
       - name: 后台逻辑自测
         run: node dev/selftest.js
+
+      # 最后查发版约定（#42）：manifest 的 version 与 CHANGELOG.md 顶部必须一致。
+      # 这条靠自律维护会在第三次发版时失效，所以交给 CI。
+      - name: 版本号与 CHANGELOG 一致性
+        run: node dev/check-version.js

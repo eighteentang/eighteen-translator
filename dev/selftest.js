@@ -1203,11 +1203,10 @@ function check(name, cond, extra) {
       && i18nEnErr.error === EN_T['err.noKey'] && i18nZhErr.error === ZH_T['err.noKey'],
     JSON.stringify({ en: i18nEnErr.error, zh: i18nZhErr.error }));
 
-  /* 源码层：中文的字符串字面量（例外必须带 i18n-allow 与理由） */
-  const I18N_SCAN_FILES = ['background.js', 'content.js', 'config.js', 'lang.js', 'speak.js', 'tech.js',
-    'sites.js', 'theme.js', 'popup.js', 'options.js'];
+  /* 源码层：中文的字符串字面量（例外必须带 i18n-allow 与理由）
+     文件清单取自扫描器本身，不在这里再抄一份 —— 抄一份就会漂移。 */
   const i18nDirtyJs = [];
-  I18N_SCAN_FILES.forEach((f) => {
+  I18N.SCAN_JS.forEach((f) => {
     I18N.scan(fs.readFileSync(path.join(ROOT, f), 'utf8'))
       .forEach((h) => i18nDirtyJs.push(f + ':' + h.line + ' ' + h.text));
   });
@@ -1215,7 +1214,7 @@ function check(name, cond, extra) {
     i18nDirtyJs.length === 0, i18nDirtyJs.join(' | '));
 
   const i18nDirtyHtml = [];
-  ['options.html', 'popup.html'].forEach((f) => {
+  I18N.SCAN_HTML.forEach((f) => {
     I18N.scanHtml(fs.readFileSync(path.join(ROOT, f), 'utf8'))
       .forEach((h) => i18nDirtyHtml.push(f + ':' + h.line + ' ' + h.text));
   });

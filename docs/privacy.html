@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — Eighteen Translator</title>
+<meta name="description" content="Privacy policy for the Eighteen Translator browser extension. What it processes, where the text goes, and what is stored on your device.">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #59636e;
+    --line: #d1d9e0;
+    --card: #f6f8fa;
+    --accent: #0969da;
+    --warn-bg: #fff8e5;
+    --warn-line: #d4a72c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --fg: #e6edf3;
+      --muted: #9198a1;
+      --line: #3d444d;
+      --card: #151b23;
+      --accent: #4493f8;
+      --warn-bg: #272115;
+      --warn-line: #9e6a03;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 46rem; margin: 0 auto; }
+  h1 { font-size: 1.7rem; line-height: 1.3; margin: 0 0 .4rem; }
+  h2 { font-size: 1.15rem; margin: 2.4rem 0 .7rem; padding-top: 1.2rem; border-top: 1px solid var(--line); }
+  h3 { font-size: 1rem; margin: 1.4rem 0 .5rem; }
+  p, li { margin: .55rem 0; }
+  ul { padding-left: 1.3rem; }
+  code {
+    font: .88em/1.5 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: .1em .38em;
+  }
+  a { color: var(--accent); }
+  .meta { color: var(--muted); font-size: .9rem; margin: 0 0 1.6rem; }
+  .lead {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 1rem 1.15rem;
+    margin: 1.4rem 0;
+  }
+  .lead p { margin: .3rem 0; }
+  .warn {
+    background: var(--warn-bg);
+    border-left: 3px solid var(--warn-line);
+    border-radius: 6px;
+    padding: .8rem 1rem;
+    margin: 1.1rem 0;
+  }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .94rem; }
+  th, td { border: 1px solid var(--line); padding: .5rem .65rem; text-align: left; vertical-align: top; }
+  th { background: var(--card); font-weight: 600; }
+  hr.lang { margin: 4rem 0 0; border: 0; border-top: 2px solid var(--line); }
+  footer { margin-top: 3rem; color: var(--muted); font-size: .9rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Privacy Policy — Eighteen Translator</h1>
+<p class="meta">Last updated: 26 September 2026 · Applies to the <strong>Eighteen Translator</strong> browser extension (Manifest V3), version 0.4.1 and later.</p>
+
+<div class="lead">
+  <p><strong>In one paragraph.</strong> Eighteen Translator runs entirely on your device. It processes only the text you explicitly select, and sends that text to the translation service <em>you</em> configured — either DeepSeek (using your own API key) or Google's public translate endpoint. It has no account system, no server of its own, no analytics and no telemetry. Everything it stores stays in your browser's local extension storage and is deleted when you uninstall the extension.</p>
+</div>
+
+<h2>1. What this extension does</h2>
+<p>The extension has a single purpose: <strong>translate text you select on a web page</strong>. You select text; a small panel shows the translation. Nothing else is translated or collected.</p>
+
+<h2>2. What data is processed</h2>
+<table>
+  <tr><th>Data</th><th>When</th><th>Why</th></tr>
+  <tr>
+    <td>The text you selected on the page</td>
+    <td>Only when you select text (automatic mode) or click the trigger dot (manual mode)</td>
+    <td>It is the input to translation. Nothing else on the page is read.</td>
+  </tr>
+  <tr>
+    <td>Your translation settings</td>
+    <td>When you change them</td>
+    <td>Source/target language, engine choice, panel appearance, read-aloud settings.</td>
+  </tr>
+  <tr>
+    <td>Your API key</td>
+    <td>Only if you choose the DeepSeek engine and enter a key</td>
+    <td>Sent to DeepSeek to authenticate your own requests.</td>
+  </tr>
+</table>
+<p>The extension does <strong>not</strong> read page content beyond your selection. It does not record which pages you visit, and it does not build any history of your translations.</p>
+
+<h2>3. Where your text is sent</h2>
+<p>Selected text leaves your device only when it is sent to the translation service you configured. There are two engines, and only one is active at a time:</p>
+<table>
+  <tr><th>Engine</th><th>Destination</th><th>Notes</th></tr>
+  <tr>
+    <td><strong>DeepSeek</strong> (default)</td>
+    <td><code>https://api.deepseek.com</code></td>
+    <td>Uses the API key you supply. DeepSeek's own privacy policy governs their handling of the request.</td>
+  </tr>
+  <tr>
+    <td><strong>Google</strong> (free public endpoint)</td>
+    <td><code>https://translate.googleapis.com</code></td>
+    <td>An unofficial public endpoint with no account or key. Not reachable from mainland China networks and often rate-limited on shared IPs.</td>
+  </tr>
+</table>
+<p>These two domains are the only network destinations the extension ever contacts. They are declared in the extension manifest as <code>host_permissions</code>, and this list matches exactly what the code requests.</p>
+
+<h2>4. What is stored on your device</h2>
+<p>Everything the extension stores lives in <code>chrome.storage.local</code> — your browser's local extension storage. <strong>None of it is uploaded anywhere.</strong></p>
+<ul>
+  <li><strong>Your settings</strong> — languages, engine choice, panel appearance, read-aloud options, excluded sites.</li>
+  <li><strong>Your API key</strong>, if you entered one.</li>
+  <li><strong>Usage counters</strong> — how many translations you ran today. Kept for the last 30 days.</li>
+  <li><strong>A translation cache</strong> — up to 200 recent translations, expiring after 7 days, so repeated selections do not hit the network again.</li>
+</ul>
+<div class="warn">
+  <p><strong>Your API key is stored in plain text.</strong> It is not encrypted. Anyone who can read your browser profile directory on this computer can read it. The extension has no cloud storage, so please keep your computer secure. The show/hide toggle in the settings page only masks it on screen — it is not encryption. Encrypting locally would be meaningless here, because the key to decrypt it would have to ship inside the extension too.</p>
+</div>
+<p>Settings are <strong>not</strong> synced across devices. If you install the extension on another computer you will need to configure it again. This is deliberate: syncing would put your API key into your browser vendor's account storage.</p>
+
+<h2>5. What is NOT collected</h2>
+<ul>
+  <li>No browsing history, no list of visited pages, no page content beyond your selection.</li>
+  <li>No analytics, no telemetry, no crash reporting, no usage statistics of any kind.</li>
+  <li>No account, no email address, no name, no identifier that could link data to you.</li>
+  <li>No advertising, no tracking pixels, no third-party scripts on this page or in the extension.</li>
+  <li>Nothing is sold, rented or shared with anyone.</li>
+</ul>
+<p>The extension contains <strong>no remote code</strong>. All executable code ships inside the package; it never downloads or evaluates code at runtime.</p>
+
+<h2>6. How to delete your data</h2>
+<ul>
+  <li><strong>Clear the translation cache and counters:</strong> settings page → Usage section → clear cache.</li>
+  <li><strong>Remove your API key:</strong> settings page → clear the key field.</li>
+  <li><strong>Delete everything at once:</strong> uninstall the extension (<code>edge://extensions</code> or <code>chrome://extensions</code>). Your browser removes all local extension storage with it. Nothing remains on any server, because nothing was ever sent to one.</li>
+</ul>
+
+<h2>7. Permissions and why they are needed</h2>
+<table>
+  <tr><th>Permission</th><th>Why</th></tr>
+  <tr><td><code>storage</code></td><td>To save your settings, key, counters and cache locally.</td></tr>
+  <tr><td><code>https://api.deepseek.com/*</code>, <code>https://translate.googleapis.com/*</code></td><td>To send the selected text to the engine you chose.</td></tr>
+  <tr><td>Content script on <code>&lt;all_urls&gt;</code></td><td>Select-to-translate only works if the extension is present on the page where you select text. Without this, it would have to be enabled per site, which defeats the purpose.</td></tr>
+</table>
+<p>The extension requests no other permissions.</p>
+
+<h2>8. Children</h2>
+<p>This extension is a general-purpose translation tool. It is not directed at children and collects no personal information from anyone.</p>
+
+<h2>9. Changes to this policy</h2>
+<p>If the extension's data handling changes, this page will be updated and the "last updated" date above will change. Material changes — for example, adding any form of analytics — will also be noted in the extension's <a href="https://github.com/eighteentang/eighteen-translator/blob/main/CHANGELOG.md">changelog</a>.</p>
+
+<h2>10. Contact</h2>
+<p>Questions, corrections or concerns: please open an issue at <a href="https://github.com/eighteentang/eighteen-translator/issues">github.com/eighteentang/eighteen-translator/issues</a>.</p>
+
+<hr class="lang">
+
+<h1 lang="zh-CN">隐私政策 —— 划词翻译（Eighteen Translator）</h1>
+<p class="meta" lang="zh-CN">最后更新：2026 年 9 月 26 日 · 适用于 <strong>Eighteen Translator</strong> 浏览器扩展（Manifest V3）0.4.1 及之后的版本。</p>
+
+<div class="lead" lang="zh-CN">
+  <p><strong>一句话说清。</strong>本扩展全部逻辑在你本机运行。它只处理你<strong>主动选中</strong>的文字，并把这些文字发给你<strong>自己配置</strong>的翻译服务 —— DeepSeek（用你自己的 API Key）或 Google 的公共翻译接口。它没有账号体系、没有自己的服务器、没有任何统计或埋点。它存下来的东西全部留在你浏览器的本地扩展存储里，卸载扩展即全部删除。</p>
+</div>
+
+<h2 lang="zh-CN">1. 这个扩展做什么</h2>
+<p lang="zh-CN">单一用途：<strong>翻译你在网页上选中的文字</strong>。你选中文字，浮层显示译文。除此之外不翻译、不收集任何东西。</p>
+
+<h2 lang="zh-CN">2. 处理哪些数据</h2>
+<table lang="zh-CN">
+  <tr><th>数据</th><th>什么时候</th><th>为什么</th></tr>
+  <tr>
+    <td>你在页面上选中的文字</td>
+    <td>仅在你选中文字时（自动模式），或点击触发小圆点时（手动模式）</td>
+    <td>它是翻译的输入。页面上的其他内容一概不读。</td>
+  </tr>
+  <tr>
+    <td>你的翻译设置</td>
+    <td>你修改时</td>
+    <td>首选 / 目标语言、引擎选择、浮层外观、朗读设置。</td>
+  </tr>
+  <tr>
+    <td>你的 API Key</td>
+    <td>仅当你选择 DeepSeek 引擎并填入 Key 时</td>
+    <td>发往 DeepSeek，用于认证你自己的请求。</td>
+  </tr>
+</table>
+<p lang="zh-CN">本扩展<strong>不</strong>读取选中内容之外的页面内容，不记录你访问过哪些页面，也不保留任何翻译历史。</p>
+
+<h2 lang="zh-CN">3. 文字发到哪里</h2>
+<p lang="zh-CN">选中的文字只会在发往<strong>你自己配置的</strong>翻译服务时离开你的设备。两个引擎，同时只有一个生效：</p>
+<table lang="zh-CN">
+  <tr><th>引擎</th><th>目标域名</th><th>说明</th></tr>
+  <tr>
+    <td><strong>DeepSeek</strong>（默认）</td>
+    <td><code>https://api.deepseek.com</code></td>
+    <td>使用你提供的 API Key。请求在 DeepSeek 侧的留存与处理，适用 DeepSeek 自己的隐私政策。</td>
+  </tr>
+  <tr>
+    <td><strong>Google</strong>（免费公共接口）</td>
+    <td><code>https://translate.googleapis.com</code></td>
+    <td>非官方公共端点，无需账号与 Key。中国大陆网络不可达，共享出口 IP 常被限流（返回 429）。</td>
+  </tr>
+</table>
+<p lang="zh-CN">这两个域名是本扩展唯一会访问的网络目标，它们就是扩展清单里声明的 <code>host_permissions</code>，与实际代码发起的请求完全一致。</p>
+
+<h2 lang="zh-CN">4. 本机存了什么</h2>
+<p lang="zh-CN">扩展存下的所有内容都在 <code>chrome.storage.local</code>（浏览器本地扩展存储）里。<strong>不会有任何一项被上传。</strong></p>
+<ul lang="zh-CN">
+  <li><strong>你的设置</strong> —— 语言、引擎、浮层外观、朗读选项、排除站点。</li>
+  <li><strong>你的 API Key</strong>（如果你填了）。</li>
+  <li><strong>用量计数</strong> —— 今天翻译了多少次。只保留最近 30 天。</li>
+  <li><strong>译文缓存</strong> —— 最多 200 条、7 天后过期，避免反复划同一段文字时重复请求。</li>
+</ul>
+<div class="warn" lang="zh-CN">
+  <p><strong>你的 API Key 是明文存储的</strong>，没有加密。能读到这台电脑上浏览器配置目录的人就能看到它。本扩展没有云端存储，请自行保管好电脑。设置页那个「显示 / 隐藏」只是遮住屏幕，不是加密 —— 扩展里做本地加密没有意义：用来解密的密钥只能一起放在扩展里，等于没加，反而给人虚假的安全感。</p>
+</div>
+<p lang="zh-CN">配置<strong>不</strong>跨设备同步。换台电脑要重新配置。这是刻意的：一旦同步，你的 API Key 就会进到浏览器厂商的账号存储里。</p>
+
+<h2 lang="zh-CN">5. 不收集什么</h2>
+<ul lang="zh-CN">
+  <li>不收集浏览历史、不记录访问过哪些页面、不读取选中内容之外的页面内容。</li>
+  <li>没有任何统计、埋点、崩溃上报或使用数据收集。</li>
+  <li>没有账号、不索取邮箱与姓名、不存在能把数据关联到你的标识符。</li>
+  <li>没有广告、没有跟踪像素；本页与扩展里都没有第三方脚本。</li>
+  <li>不向任何人出售、出租或共享数据。</li>
+</ul>
+<p lang="zh-CN">扩展内<strong>没有远程代码</strong>。所有可执行代码都随包一起分发，运行时不会下载或执行任何外部代码。</p>
+
+<h2 lang="zh-CN">6. 怎么删掉你的数据</h2>
+<ul lang="zh-CN">
+  <li><strong>清译文缓存与计数：</strong>设置页 →「用量」一节 → 清空缓存。</li>
+  <li><strong>删除 API Key：</strong>设置页里把 Key 清掉即可。</li>
+  <li><strong>一次全删：</strong>卸载扩展（<code>edge://extensions</code> 或 <code>chrome://extensions</code>）。浏览器会连本地扩展存储一起清掉。任何服务器上都不会有残留 —— 因为从来没有数据被发到我们的服务器（我们没有服务器）。</li>
+</ul>
+
+<h2 lang="zh-CN">7. 申请的权限及理由</h2>
+<table lang="zh-CN">
+  <tr><th>权限</th><th>为什么需要</th></tr>
+  <tr><td><code>storage</code></td><td>在本机保存你的设置、Key、计数与缓存。</td></tr>
+  <tr><td><code>https://api.deepseek.com/*</code>、<code>https://translate.googleapis.com/*</code></td><td>把选中的文字发给你选择的引擎。</td></tr>
+  <tr><td>内容脚本匹配 <code>&lt;all_urls&gt;</code></td><td>划词翻译必须能在你选字的那张页面上工作。若改成按站点启用，就失去了「选中即译」的意义。</td></tr>
+</table>
+<p lang="zh-CN">除此之外没有申请任何其他权限。</p>
+
+<h2 lang="zh-CN">8. 关于儿童</h2>
+<p lang="zh-CN">本扩展是通用翻译工具，不面向儿童，也不向任何人收集个人信息。</p>
+
+<h2 lang="zh-CN">9. 政策变更</h2>
+<p lang="zh-CN">若数据处理方式发生变化，本页会更新，「最后更新」日期也会改。涉及实质性的变化（例如将来加入任何形式的统计）还会记进扩展的<a href="https://github.com/eighteentang/eighteen-translator/blob/main/CHANGELOG.md">更新日志</a>。</p>
+
+<h2 lang="zh-CN">10. 联系方式</h2>
+<p lang="zh-CN">有任何疑问或需要更正，请在 <a href="https://github.com/eighteentang/eighteen-translator/issues">github.com/eighteentang/eighteen-translator/issues</a> 提一个 issue。</p>
+
+<footer>
+  <p>Eighteen Translator · MIT licensed · <a href="https://github.com/eighteentang/eighteen-translator">source code</a></p>
+</footer>
+
+</main>
+</body>
+</html>

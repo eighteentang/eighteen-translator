@@ -290,7 +290,8 @@ for (const d of locNames) {
     bad('_locales/' + d + ' 的 extName 有 ' + name.length + ' 字符，超过 manifest 的 75 上限');
   } else if (name.length > 45) {
     notes.push('⚠️ _locales/' + d + ' 的 extName 有 ' + name.length +
-      ' 字符 —— manifest 允许 75，但**商店的标题上限是 45**，上架时这一版会被拒或被截断');
+      ' 字符 —— manifest 允许 75；**Chrome 商店的标题上限是 45**（Edge 是 75），' +
+      'Chrome 那边会被拒或被截断');
   }
 }
 

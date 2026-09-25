@@ -154,22 +154,38 @@ function scanHtml(src) {
   return hits;
 }
 
-module.exports = { scan, scanHtml, findChineseLiterals, CN, MARK };
+/* 要扫哪些文件 —— **只此一份**，命令行与 selftest 共用。
+   分成两份的后果：新增一个源文件时只补了其中一处，另一处静默漏扫，
+   而漏扫的表现就是「检查通过」。 */
+const SCAN_JS = ['background.js', 'content.js', 'config.js', 'lang.js', 'speak.js',
+  'tech.js', 'sites.js', 'theme.js', 'popup.js', 'options.js'];
+const SCAN_HTML = ['popup.html', 'options.html'];
+
+module.exports = { scan, scanHtml, findChineseLiterals, CN, MARK, SCAN_JS, SCAN_HTML };
 
 if (require.main === module) {
   const fs = require('fs');
   const path = require('path');
   const ROOT = path.join(__dirname, '..');
+
+  /* ⚠️ 不带参数时扫**扩展自己的源码**，而不是什么都不扫。
+     以前这里直接遍历 `process.argv.slice(2)`：不带参数就一次都不进循环，
+     照样打印 `TOTAL 0` —— 一个永远通过的检查比没有更糟，它会让人以为防线在。 */
+  const args = process.argv.slice(2);
+  const files = args.length ? args : SCAN_JS.concat(SCAN_HTML);
   let bad = 0;
-  for (const f of process.argv.slice(2)) {
+
+  files.forEach((f) => {
     const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
-    const hits = scan(src);
+    const hits = /\.html?$/i.test(f) ? scanHtml(src) : scan(src);
     if (hits.length) {
       bad += hits.length;
       console.log('=== ' + f + ' (' + hits.length + ') ===');
       hits.forEach((h) => console.log('  ' + h.line + ': ' + h.text));
     }
-  }
+  });
+
+  console.log('扫了 ' + files.length + ' 个文件：' + files.join(', '));
   console.log('TOTAL ' + bad);
   process.exit(bad ? 1 : 0);
 }

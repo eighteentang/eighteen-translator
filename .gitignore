@@ -9,6 +9,8 @@ desktop.ini
 *.swp
 
 # 打包与签名产物（扩展发布用，不进版本库）
+# ⚠️ dist/ 是 dev/pack.js 的产物目录（#37）—— zip 挂到 GitHub Release 上，不进版本库
+dist/
 *.zip
 *.crx
 *.pem
