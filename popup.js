@@ -2,7 +2,8 @@
 
 /* 划词翻译 —— 工具栏弹层
    ────────────────────────────────────────────────────────────────
-   只放高频操作：总开关、主题快捷切换、「在此域名不可用」、去设置页、反馈入口。
+   只放高频操作：总开关、触发方式、目标语言、今日用量、主题快捷切换、
+   「在此域名不可用」和去设置页。
 
    「在此域名不可用」（#29）是唯一一个「按当前页面决定显示什么」的控件 ——
    所以它要问内容脚本当前是什么域名，见下面的 currentHostname()。
@@ -15,6 +16,8 @@
 
 const DEFAULTS = globalThis.WT_CONFIG.DEFAULTS;
 const THEME = globalThis.WT_THEME;
+const LANGUTIL = globalThis.WT_LANG;
+const todayKey = globalThis.WT_CONFIG.todayKey;
 // 界面文案（#39）—— 所有给用户看的字都在 strings.js 里，这里只取
 const T = globalThis.WT_STRINGS;
 const t = (key, vars) => T.t(key, vars);
@@ -103,9 +106,76 @@ function repaintDynamic() {
   if (lastCfg) {
     paintWarn(lastCfg);
     paintSite(currentHost, sitesText);
+    paintTrigger(lastCfg);
+    paintTargetLang(lastCfg);
   }
   paintTheme();
   paintLang();
+}
+
+function paintTrigger(cfg) {
+  const box = $('triggerMode');
+  const desc = $('triggerDesc');
+  const manualLabel = $('triggerManualLabel');
+  const autoLabel = $('triggerAutoLabel');
+  if (!box || !desc || !manualLabel || !autoLabel) return;
+
+  const auto = (cfg.triggerMode || 'auto') !== 'manual';
+  const label = t(auto ? 'pop.triggerAuto' : 'pop.triggerManual');
+  box.checked = auto;
+  desc.textContent = t(auto ? 'pop.triggerAutoDesc' : 'pop.triggerManualDesc');
+  manualLabel.classList.toggle('active', !auto);
+  autoLabel.classList.toggle('active', auto);
+  box.title = label;
+  box.setAttribute('aria-label', label);
+}
+
+function paintTargetLang(cfg) {
+  const select = $('targetLang');
+  if (!select) return;
+
+  const preferred = cfg.preferredLang || DEFAULTS.preferredLang;
+  const current = cfg.targetLang || DEFAULTS.targetLang;
+  let langs = LANGUTIL.LANGS.filter((item) => item.code !== preferred);
+
+  /* 正常配置不会出现 targetLang === preferredLang（设置页会拦住），
+     但老配置或手动改过 storage 时仍要把当前值画出来，不能悄悄替用户改设置。 */
+  if (!langs.some((item) => item.code === current)) {
+    const currentItem = LANGUTIL.LANGS.find((item) => item.code === current);
+    if (currentItem) langs = [currentItem].concat(langs);
+  }
+
+  select.textContent = '';
+  langs.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = item.code;
+    option.textContent = t('lang.' + item.code);
+    select.appendChild(option);
+  });
+  select.value = langs.some((item) => item.code === current)
+    ? current
+    : (langs[0] ? langs[0].code : '');
+  select.setAttribute('aria-label', t('pop.target'));
+}
+
+function renderUsage() {
+  const el = $('usageToday');
+  if (!el) return Promise.resolve();
+  if (!hasExt) {
+    el.textContent = '—';
+    return Promise.resolve();
+  }
+
+  return chrome.storage.local.get({ usage: null }).then((v) => {
+    const usage = v && v.usage;
+    const byDay = usage && usage.byDay && typeof usage.byDay === 'object'
+      ? usage.byDay
+      : {};
+    const n = Number(byDay[todayKey()] || 0);
+    el.textContent = Number.isFinite(n) ? String(n) : '0';
+  }).catch(() => {
+    el.textContent = '—';
+  });
 }
 
 function paintLang() {
@@ -159,6 +229,9 @@ function render(cfg) {
   themePref = cfg.theme || 'auto';
   paintTheme();
   paintLang();
+  paintTrigger(cfg);
+  paintTargetLang(cfg);
+  renderUsage();
 
   // 排除列表：先用配置里已有的文本画一版，等域名回来再画一次
   // （域名要问内容脚本，是异步的；先画一版可以让弹层不出现空白）
@@ -211,10 +284,6 @@ $('open-options').addEventListener('click', () => {
   }
 });
 
-// 「反馈建议」是一个普通的 <a target="_blank">：浏览器会开新标签页，
-// 弹层随之关闭。不需要 JS，也就不需要 tabs 权限。
-// 万一在没有扩展 API 的环境里打开本页，点击它也不会报错（只是普通链接）。
-
 $('theme').addEventListener('click', () => {
   // 从当前「实际显示的样子」翻到另一种，所以 auto 点一下也会变成明确的选择
   themePref = THEME.resolve(themePref) === 'dark' ? 'light' : 'dark';
@@ -241,6 +310,34 @@ $('lang').addEventListener('click', () => {
 
   save({ uiLang: next }).catch((e) => setStatus(t('pop.saveFail', { msg: e.message }), 'err'));
 });
+
+$('triggerMode').addEventListener('change', () => {
+  const mode = $('triggerMode').checked ? 'auto' : 'manual';
+  save({ triggerMode: mode })
+    .then(() => {
+      if (lastCfg) lastCfg.triggerMode = mode;
+      paintTrigger(lastCfg || Object.assign({}, DEFAULTS, { triggerMode: mode }));
+    })
+    .catch((e) => setStatus(t('pop.saveFail', { msg: e.message }), 'err'));
+});
+
+$('targetLang').addEventListener('change', () => {
+  const code = $('targetLang').value;
+  const name = t('lang.' + code);
+  save({ targetLang: code })
+    .then(() => {
+      if (lastCfg) lastCfg.targetLang = code;
+      paintTargetLang(lastCfg || Object.assign({}, DEFAULTS, { targetLang: code }));
+      setStatus(t('pop.targetSaved', { lang: name }), 'ok');
+    })
+    .catch((e) => setStatus(t('pop.saveFail', { msg: e.message }), 'err'));
+});
+
+if (hasExt && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.usage) renderUsage();
+  });
+}
 
 /* ---------- 初始化 ---------- */
 

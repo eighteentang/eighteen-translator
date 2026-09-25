@@ -151,7 +151,18 @@
       'pop.siteRemoved': '已恢复 —— 刷新页面后生效',
       'pop.noExt': '当前不在扩展环境中',
       'pop.options': '完整设置',
-      'pop.feedback': '反馈建议',
+      'pop.trigger': '触发方式',
+      'pop.auto': '自动',
+      'pop.manual': '手动',
+      'pop.triggerAuto': '自动翻译',
+      'pop.triggerManual': '手动确认',
+      'pop.triggerAutoDesc': '选中后自动翻译',
+      'pop.triggerManualDesc': '选中后点击图标翻译',
+      'pop.target': '目标语言',
+      'pop.targetDesc': '快速调整翻译成什么语言',
+      'pop.targetSaved': '目标语言已切换为{lang}',
+      'pop.usageToday': '今日已翻译',
+      'pop.usageTodayDesc': '按本机日期统计',
       'pop.saveFail': '保存失败：{msg}',
       'pop.readFail': '读取配置失败：{msg}',
 
@@ -172,7 +183,7 @@
       'opt.secMode': '服务模式',
       'opt.ownKey': '使用自己的 API Key',
       'opt.badgeDefault': '默认',
-      'opt.ownKeyHint': '需自行申请凭据，翻译费用由自己承担',
+      'opt.ownKeyHint': '需自行申请并配置凭据',
       'opt.free': '平台免费额度',
       'opt.badgeTesting': '测试中',
       'opt.freeHint': '无需任何配置，装上即用 —— 尚未开放',
@@ -181,7 +192,7 @@
 
       'opt.secEngine': '翻译引擎',
       'opt.badgeRecommended': '推荐',
-      'opt.dsHint': '需 API Key。能结合语境翻译，单次成本约万分之几元',
+      'opt.dsHint': '需 API Key。能结合语境翻译，适合长句与技术内容',
       'opt.googleName': 'Google 免费接口',
       'opt.googleHint': '零配置。公共接口对共享 IP 限流严格，可能需要代理；国内网络建议用 DeepSeek',
 
@@ -191,8 +202,7 @@
       'opt.hide': '隐藏',
       'opt.showAria': '显示 API Key',
       'opt.hideAria': '隐藏 API Key',
-      'opt.keyNote': '在 DeepSeek 开放平台创建 API Key 并充值后使用。'
-        + '按官方定价，一次划词翻译的成本在万分之几元的量级。',
+      'opt.keyNote': '在 DeepSeek 开放平台创建 API Key，并按平台要求完成账户配置后使用。',
       'opt.keyNote2': '本插件无云端存储，本地电脑请自行保管。'
         + '<br>（Key 以<b>明文</b>存在本机浏览器的扩展存储里，不加密、不上传 —— '
         + '能读到浏览器配置目录的人就能看到。上面那个「显示 / 隐藏」只是遮住屏幕，不是加密。）',
@@ -243,14 +253,14 @@
       'opt.accentAuto': '跟随系统',
       'opt.accentUS': '美式英语',
       'opt.accentGB': '英式英语',
-      'opt.speakNote': '朗读用的是浏览器<b>自带</b>的语音合成：离线、不上传、不花钱，也不需要任何额外配置。'
+      'opt.speakNote': '朗读用的是浏览器<b>自带</b>的语音合成：离线、不上传，也不需要任何额外配置。'
         + '<br>⚠️ 音色由系统决定，各台机器不一样；装没装语音包也由系统决定。'
         + '没有可用语音包时，浮层上的朗读按钮会说明原因，不会静默失败。'
         + '<br>⚠️ 英语口音这一项<b>只对英语生效</b> —— 别的语言没有这个区分，选了也不起作用。',
 
       'opt.secUsage': '用量',
       'opt.usageToday': '今日已翻译',
-      'opt.usageTodayDesc': '按本机日期统计，只数次数，不估算费用',
+      'opt.usageTodayDesc': '按本机日期统计请求次数',
       'opt.quota': '每日上限',
       'opt.quotaDesc': '到上限后当天不再发请求，避免误操作刷掉额度',
       'opt.quotaFull': '今天已经到上限了 —— 点右边按钮即可继续',
@@ -259,13 +269,13 @@
       'opt.cacheDesc': '缓存译文，同样的内容不再重复请求引擎',
       'opt.cacheCount': '已缓存 {n} 条，命中时不再请求引擎',
       'opt.clearCache': '清空缓存',
-      'opt.usageNote': '上限是一道<b>防呆的闸</b>，不是配额：反复划同一个词、或网页脚本误触发时，'
-        + '它挡住的是一次次白付的钱。真到上限了，点「调高上限」即可继续。',
+      'opt.usageNote': '上限是一道<b>防误触保护</b>：反复划同一个词、或网页脚本误触发时，'
+        + '它会先挡住重复请求。真到上限了，点「调高上限」即可继续。',
 
       'opt.secTech': '跳过技术内容',
       'opt.skipTech': '跳过代码 / 链接 / 邮箱 / 路径 / 命令行',
       'opt.skipTechDesc': '选中这类内容时不发请求',
-      'opt.techNote': '读技术文档时随手选到一段代码、一个 URL，翻出来只是把原文回一遍 —— 既花钱又干扰。'
+      'opt.techNote': '读技术文档时随手选到一段代码、一个 URL，翻出来只是把原文回一遍 —— 既多余又干扰。'
         + '打开这一项后，这类内容不发请求，浮层会说明<b>拦的是什么</b>，并且始终给一个「仍然翻译」。'
         + '<br>只在<b>短于 200 字符</b>的选区上判定：长文里夹一行代码时跳过整段，才是真正的误伤。'
         + '嫌误伤多就关掉它，完全回到旧行为。',
@@ -277,7 +287,7 @@
       'opt.manualHint': '选中后只在旁边出一颗小圆点，点它才翻译',
       'opt.triggerNote': '读长文时自动翻译容易被误触发，而每一次误触发都会真的发一次请求。'
         + '手动模式多一次点击，但<b>一次误触发的请求都不会发</b> —— '
-        + '自动模式是「先发出去、再取消」，按实测那部分输入 token 已经计费了。',
+        + '自动模式是「先发出去、再取消」，手动模式可以避免这类请求。',
 
       'opt.secSites': '排除站点',
       'opt.sitesLabel': '在这些域名上不翻译（一行一个）',
@@ -450,7 +460,18 @@
       'pop.siteRemoved': 'Re-enabled — refresh the page to apply',
       'pop.noExt': 'Not running inside the extension',
       'pop.options': 'Full settings',
-      'pop.feedback': 'Feedback',
+      'pop.trigger': 'Trigger mode',
+      'pop.auto': 'Auto',
+      'pop.manual': 'Manual',
+      'pop.triggerAuto': 'Automatic',
+      'pop.triggerManual': 'Manual',
+      'pop.triggerAutoDesc': 'Translate as soon as you select text',
+      'pop.triggerManualDesc': 'Select text, then click the icon',
+      'pop.target': 'Target language',
+      'pop.targetDesc': 'Quickly choose what to translate into',
+      'pop.targetSaved': 'Target language changed to {lang}',
+      'pop.usageToday': 'Translated today',
+      'pop.usageTodayDesc': 'Counted by local date',
       'pop.saveFail': 'Save failed: {msg}',
       'pop.readFail': 'Failed to read the settings: {msg}',
 
@@ -480,7 +501,7 @@
 
       'opt.secEngine': 'Translation engine',
       'opt.badgeRecommended': 'recommended',
-      'opt.dsHint': 'Needs an API key. Context-aware; a fraction of a cent per use',
+      'opt.dsHint': 'Needs an API key. Context-aware; useful for long and technical text',
       'opt.googleName': 'Google (free endpoint)',
       'opt.googleHint': 'No setup. This public endpoint rate-limits shared IPs and may need a proxy; '
         + 'on mainland China networks, use DeepSeek instead',
@@ -491,8 +512,7 @@
       'opt.hide': 'Hide',
       'opt.showAria': 'Show API key',
       'opt.hideAria': 'Hide API key',
-      'opt.keyNote': 'Create an API key on the DeepSeek platform and top up your balance first. '
-        + 'At the official rates, one translation costs a fraction of a cent.',
+      'opt.keyNote': 'Create an API key on the DeepSeek platform and complete the account setup required there.',
       'opt.keyNote2': 'This extension has no cloud storage — keep the key safe on your own machine.'
         + '<br>(The key is stored <b>in plain text</b> in this browser’s extension storage: '
         + 'not encrypted, never uploaded. Anyone who can read your browser profile can read it. '
@@ -552,7 +572,7 @@
       'opt.accentUS': 'American English',
       'opt.accentGB': 'British English',
       'opt.speakNote': 'Read-aloud uses the browser’s <b>built-in</b> speech synthesis: '
-        + 'offline, nothing uploaded, no cost, and no setup required.'
+        + 'offline, nothing uploaded, and no setup required.'
         + '<br>⚠️ The voice itself comes from your system, so it differs between machines — '
         + 'and so does whether any voices are installed at all. When none is available, '
         + 'the button in the panel says so instead of failing silently.'
@@ -561,7 +581,7 @@
 
       'opt.secUsage': 'Usage',
       'opt.usageToday': 'Translated today',
-      'opt.usageTodayDesc': 'Counted by local date; counts calls only, never estimates cost',
+      'opt.usageTodayDesc': 'Counted by local date as request calls',
       'opt.quota': 'Daily limit',
       'opt.quotaDesc': 'Once reached, no more requests go out today',
       'opt.quotaFull': "Today's limit is reached — click the button to continue",
@@ -570,15 +590,14 @@
       'opt.cacheDesc': "Caches translations so identical text isn't sent twice",
       'opt.cacheCount': '{n} entries cached; hits skip the engine',
       'opt.clearCache': 'Clear cache',
-      'opt.usageNote': 'The limit is a <b>safety catch</b>, not a quota: it stops the money you would '
-        + 'otherwise pay for repeatedly selecting the same word or for a page script misfiring. '
-        + 'If you do hit it, click "Raise limit" and carry on.',
+      'opt.usageNote': 'The limit is a <b>safety catch</b>: it stops repeated requests caused by '
+        + 'selecting the same text or by a page script misfiring. If you do hit it, click "Raise limit" and carry on.',
 
       'opt.secTech': 'Skip technical content',
       'opt.skipTech': 'Skip code / links / emails / paths / commands',
       'opt.skipTechDesc': 'No request is sent for these',
       'opt.techNote': 'While reading docs you often select a snippet of code or a URL, and the '
-        + 'result is just the original text back — it costs money and gets in the way. With this on, '
+        + 'result is just the original text back and gets in the way. With this on, '
         + 'no request is sent and the panel says <b>what</b> was caught, always offering '
         + '"Translate anyway".'
         + '<br>It only applies to selections <b>shorter than 200 characters</b>: skipping a whole '
@@ -591,9 +610,8 @@
       'opt.manual': 'Manual',
       'opt.manualHint': 'Shows a small dot; nothing is sent until you click it',
       'opt.triggerNote': 'While reading long texts, automatic mode misfires easily — and every '
-        + 'misfire really does send a request. Manual mode costs one click, but <b>sends nothing '
-        + 'on a misfire</b>: automatic mode fires first and cancels after, and those input tokens '
-        + 'are already billed.',
+        + 'misfire really does send a request. Manual mode needs one click, but <b>sends nothing '
+        + 'on a misfire</b>: automatic mode fires first and cancels after.',
 
       'opt.secSites': 'Excluded sites',
       'opt.sitesLabel': "Don't translate on these domains (one per line)",
@@ -608,7 +626,7 @@
         + '<code>a.example.com</code>. Pasting a full URL is fine too — <code>https://</code> '
         + 'and the path are stripped. Lines starting with <code>#</code> are comments.'
         + '<br>⚠️ <b>Refresh open tabs after changing this</b> — the check runs once per page load, '
-        + 'which is exactly why it costs nothing.'
+        + 'which is exactly why it does not make a network request.'
         + '<br>To disable the extension <b>everywhere</b>, use the main switch at the top instead '
         + 'of writing <code>*</code> here.',
 

@@ -342,7 +342,7 @@
      我们也解释不清。
 
      这里把它变成一个明确的「不做」：装不下就不注册任何监听，连请求都不发
-     （顺带省一次计费）。README 的「已知限制」写了同一条。
+      （顺带避免一次无结果的请求）。README 的「已知限制」写了同一条。
 
      ⚠️ 判断只在脚本加载时做一次（与 #29 排除站点同一个道理）——
      iframe 事后被拉大不会自动恢复，需要刷新页面。 */
@@ -542,8 +542,9 @@
     const tools = document.createElement('div');
     tools.className = 'tools';
 
-    /* 「译成 X」—— 语言判定是启发式的，一定会判错的时候（中英混排、短句、专有名词）。
-       这个按钮是唯一的出口：判错时一键换方向，不用跑去设置页改配置。
+    /* 「朗读原文」或「译成 X」—— 语言判定是启发式的，一定会判错的时候
+       （中英混排、短句、专有名词）。除中英文原文外，这个按钮是唯一的换向出口，
+       不用跑去设置页改配置。
        没出结果之前不显示（那时还不知道目标语言是什么）。 */
     altBtn = document.createElement('button');
     altBtn.className = 'btn';
@@ -674,8 +675,8 @@
 
   /* 作废当前这次请求：seq++ 让回来的响应被丢掉，并通知后台停掉在飞的请求。
 
-     通知后台那一步不能省：以前 close() 只做 seq++，请求仍在后台跑完并计费 ——
-     用户已经点了别处、浮层都关了，结果没人要，这笔钱是纯浪费。 */
+     通知后台那一步不能省：以前 close() 只做 seq++，请求仍在后台跑完 ——
+     用户已经点了别处、浮层都关了，结果没人要。 */
   function abortCurrent() {
     clearSlow();
     seq++;
@@ -745,7 +746,7 @@
 
   /* ---------- 朗读（#10）----------
 
-     只用浏览器内置的 speechSynthesis（离线、不上传、零成本、零权限）。
+     只用浏览器内置的 speechSynthesis（离线、不上传、零权限）。
      分句 / 选音 / 状态机在 speak.js 里，这里只管与浮层接线。 */
 
   /* 语音列表是**异步**加载的：首次 `getVoices()` 常常返回空数组，
@@ -924,16 +925,15 @@
 
   /* 手动模式的小图标（#6）。
 
-     为什么值得单独一条路径：自动模式是「先发请求、再被取消」，而按 #1 的实测结论，
-     取消发生在请求发出之后 —— **那部分输入 token 已经计费**。手动模式是根本不发。
-     所以它不只是「少打扰」，也是「少花钱」。
+     为什么值得单独一条路径：自动模式是「先发请求、再被取消」，
+     取消发生在请求发出之后。手动模式是根本不发，所以能避免误选时产生请求。
 
      复用同一个 Shadow DOM 宿主，只把面板换成一颗圆按钮（.panel.mini + .dot）。
      图标上写「译」而不是画一个图标：目标用户一眼就懂，也不需要额外资源。 */
   function showDot(text) {
     if (!ensure()) return;
 
-    abortCurrent();          // 用户已经在看别的了，在飞的请求别再跑完计费
+    abortCurrent();          // 用户已经在看别的了，在飞的请求不必继续跑完
     stopRead();              // 同上：声音也要跟着停（#10）
     lastResult = '';
     lastTarget = '';
@@ -1034,7 +1034,10 @@
         }
         if (altBtn && lastTarget) {
           const altTarget = LANGUTIL.other(lastTarget, cfg.preferredLang, cfg.targetLang);
-          const readOriginal = altTarget === 'zh' || altTarget === 'zh-Hant';
+          const sourceLang = LANGUTIL.detect(lastText);
+          const readOriginal = sourceLang === 'zh'
+            || sourceLang === 'zh-Hant'
+            || sourceLang === 'en';
           altAction = readOriginal ? 'readOriginal' : 'translate';
           const altLabel = readOriginal
             ? T.t('panel.readOriginal')
@@ -1167,7 +1170,7 @@
     scrollRef = window.scrollY;
 
     /* 超过上限：不再静默关闭，改为给一条可读的说明。
-       分片翻译（一次划词变 N 次计费）按 #14 的裁决不做，只提示 + README 写明。 */
+       分片翻译（一次划词变成多次请求）按 #14 的裁决不做，只提示 + README 写明。 */
     if (text.length > MAX_LEN) {
       notice(T.t('panel.tooLong', { n: text.length, max: MAX_LEN }));
       return;

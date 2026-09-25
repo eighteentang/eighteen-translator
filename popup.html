@@ -26,15 +26,15 @@
   /* 主题：由 theme.js 把 auto 解析成 light / dark 写到 <html data-theme>，
      所以 CSS 里只需要两套配色，不必再写媒体查询。 */
   :root[data-theme="dark"] {
-    --bg: #1e1e1e;
+    --bg: #2b2b2b;
     --fg: #e8e8e8;
     --muted: #9a9a9a;
-    --line: rgba(255, 255, 255, 0.14);
-    --card: #262626;
+    --line: rgba(255, 255, 255, 0.18);
+    --card: #353535;
     --accent: #6f9dff;
     --warn: #ff8f85;
     --ok: #6ddba0;
-    --btn-surface: #313131;
+    --btn-surface: #414141;
     /* 深色底上黑阴影几乎看不见，改用更亮的描边来「浮起来」 */
     --btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     --btn-shadow-hover: 0 2px 7px rgba(0, 0, 0, 0.6);
@@ -168,6 +168,90 @@
     padding: 9px 0;
   }
   .row .desc { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; }
+  .row > span:first-child { min-width: 0; }
+  .row select {
+    flex: none;
+    width: 116px;
+    min-width: 0;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+    font-size: 12px;
+  }
+  .row select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .count {
+    flex: none;
+    min-width: 28px;
+    color: var(--fg);
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1;
+    text-align: right;
+  }
+  .switch {
+    position: relative;
+    flex: none;
+    width: 38px;
+    height: 22px;
+  }
+  .switch-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: none;
+  }
+  .switch-label {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .switch-label.active {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .switch input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+  .switch-track {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--btn-surface);
+    cursor: pointer;
+    transition: background-color .16s ease, border-color .16s ease;
+  }
+  .switch-track::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--muted);
+    box-shadow: var(--btn-shadow);
+    transition: transform .16s ease, background-color .16s ease;
+  }
+  .switch input:checked + .switch-track {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .switch input:checked + .switch-track::after {
+    background: #ffffff;
+    transform: translateX(16px);
+  }
+  .switch input:focus-visible + .switch-track {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 
   /* 未配置 API Key 时的提示 —— 引擎选择搬到设置页之后，
      这里是弹层里唯一还能提醒「为什么翻译不出来」的地方。 */
@@ -275,6 +359,20 @@
     </span>
     <input type="checkbox" id="enabled">
   </div>
+  <div class="row">
+    <span>
+      <span data-i18n="pop.trigger"></span>
+      <span class="desc" id="triggerDesc"></span>
+    </span>
+    <span class="switch-wrap">
+      <span class="switch-label" id="triggerManualLabel" data-i18n="pop.manual"></span>
+      <label class="switch">
+        <input type="checkbox" id="triggerMode" aria-describedby="triggerDesc">
+        <span class="switch-track" aria-hidden="true"></span>
+      </label>
+      <span class="switch-label" id="triggerAutoLabel" data-i18n="pop.auto"></span>
+    </span>
+  </div>
   <!-- #29 的 popup 侧入口。勾上 = 把当前域名加进设置页那个排除列表。
        ⚠️ 勾选框的状态是**算出来的**（当前域名有没有被列表命中），不是存起来的 ——
        两处各存一份的话，设置页里改了列表、这里还显示着旧状态。 -->
@@ -287,19 +385,34 @@
   </div>
 </div>
 
+<div class="card">
+  <div class="row">
+    <span>
+      <span data-i18n="pop.target"></span>
+      <span class="desc" data-i18n="pop.targetDesc"></span>
+    </span>
+    <select id="targetLang"></select>
+  </div>
+  <div class="row">
+    <span>
+      <span data-i18n="pop.usageToday"></span>
+      <span class="desc" data-i18n="pop.usageTodayDesc"></span>
+    </span>
+    <strong class="count" id="usageToday">—</strong>
+  </div>
+</div>
+
 <p class="warnline" id="warnline"></p>
 
-<!-- 弹层只放高频操作。引擎、凭据、翻译方向、主题全部在设置页里改。 -->
+<!-- 弹层只放高频操作。引擎、凭据、完整翻译方向与主题仍在设置页里改。 -->
 <div class="actions">
   <button id="open-options" class="primary" type="button" data-i18n="pop.options"></button>
-  <a class="btn ghost" id="feedback" target="_blank" rel="noopener"
-     href="https://github.com/eighteentang/eighteen-translator/issues/new"
-     data-i18n="pop.feedback"></a>
 </div>
 <div id="status"></div>
 
 <script src="config.js"></script>
 <script src="strings.js"></script>
+<script src="lang.js"></script>
 <script src="sites.js"></script>
 <script src="popup.js"></script>
 </body>

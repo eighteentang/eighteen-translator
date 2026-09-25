@@ -526,6 +526,23 @@ async function main() {
       const c1 = await probe(page);
       ok('拿到译文后浮层显示译文', /E2E 译文/.test(c1.text || ''), JSON.stringify(c1.text));
 
+      const enAlt = await page.evaluate(() => {
+        const el = document.getElementById('wt-translate-host');
+        const sr = el && el.shadowRoot;
+        const btn = sr && Array.from(sr.querySelectorAll('.tools .btn'))
+          .find((b) => b.getAttribute('aria-label') === '朗读原文'
+            || b.getAttribute('aria-label') === 'Read original');
+        return btn ? {
+          text: btn.textContent,
+          label: btn.getAttribute('aria-label'),
+          title: btn.getAttribute('title')
+        } : null;
+      });
+      ok('英文原文结果页直接显示「朗读原文」（#10）',
+        !!enAlt && ['朗读原文', 'Read original'].indexOf(enAlt.text) >= 0
+          && enAlt.label === enAlt.text && enAlt.title === enAlt.text,
+        JSON.stringify(enAlt));
+
       // 复制按钮要**真的用鼠标点**：程序化 element.click() 不构成用户激活，
       // 剪贴板 API 会直接拒绝 —— 那样测出来的失败是假的。
       const copyPos = await page.evaluate(() => {
@@ -572,7 +589,10 @@ async function main() {
         // 引擎选择已搬去设置页 —— 弹层里不该再有 radio
         hasEngineRadio: !!document.querySelector('input[name="engine"]'),
         warn: (document.getElementById('warnline') || {}).textContent,
-        feedback: (document.getElementById('feedback') || {}).href,
+        hasFeedback: !!document.getElementById('feedback'),
+        hasTrigger: !!document.getElementById('triggerMode'),
+        hasTarget: !!document.getElementById('targetLang'),
+        hasUsage: !!document.getElementById('usageToday'),
         w: Math.round(document.body.getBoundingClientRect().width),
       }));
       ok('popup 能打开并渲染', pInfo.hasToggle && pInfo.w > 0,
@@ -581,9 +601,14 @@ async function main() {
         pInfo.hasEngineRadio ? '仍然存在 input[name=engine]' : '无 radio');
       ok('未配 Key 时弹层给出提示（引擎选择搬走后唯一的提醒点）',
         /DeepSeek API Key/.test(pInfo.warn || ''), `「${pInfo.warn}」`);
-      ok('popup 有「反馈建议」，指向 GitHub Issues',
-        /^https:\/\/github\.com\/eighteentang\/eighteen-translator\/issues/.test(pInfo.feedback || ''),
-        pInfo.feedback || '(空)');
+      ok('popup 去掉独立「反馈建议」入口，保留完整设置作为入口',
+        pInfo.hasFeedback === false && pInfo.hasTrigger && pInfo.hasTarget && pInfo.hasUsage,
+        JSON.stringify({
+          feedback: pInfo.hasFeedback,
+          trigger: pInfo.hasTrigger,
+          target: pInfo.hasTarget,
+          usage: pInfo.hasUsage
+        }));
       ok('popup 无脚本错误', popErr.length === 0, popErr.join(' | ') || '无');
 
       /* ---- 文案单一真源（#39）----
@@ -600,7 +625,11 @@ async function main() {
           pending: document.documentElement.classList.contains(S.PENDING_CLASS),
           title: (document.querySelector('[data-i18n="pop.title"]') || {}).textContent || '',
           toggle: (document.querySelector('[data-i18n="pop.enabled"]') || {}).textContent || '',
-          feedback: (document.querySelector('[data-i18n="pop.feedback"]') || {}).textContent || '',
+          target: (document.querySelector('[data-i18n="pop.target"]') || {}).textContent || '',
+          trigger: (document.querySelector('[data-i18n="pop.trigger"]') || {}).textContent || '',
+          triggerAuto: (document.getElementById('triggerAutoLabel') || {}).textContent || '',
+          triggerManual: (document.getElementById('triggerManualLabel') || {}).textContent || '',
+          usage: (document.querySelector('[data-i18n="pop.usageToday"]') || {}).textContent || '',
         });
         const zh = pick();
         S.setLang('en');
@@ -612,7 +641,9 @@ async function main() {
       });
       ok('popup 的正文是 JS 填的：i18n-pending 已撤、正文非空（#39）',
         i18nPop.zh.pending === false && i18nPop.zh.title.length > 0
-          && i18nPop.zh.toggle.length > 0 && i18nPop.zh.feedback.length > 0,
+          && i18nPop.zh.toggle.length > 0 && i18nPop.zh.target.length > 0
+          && i18nPop.zh.trigger.length > 0 && i18nPop.zh.triggerAuto === '自动'
+          && i18nPop.zh.triggerManual === '手动' && i18nPop.zh.usage.length > 0,
         JSON.stringify(i18nPop.zh));
       ok('popup 切成英文后正文真的跟着变，切回来也还原（#39 给 #35 铺的路）',
         i18nPop.en.lang === 'en' && i18nPop.en.title !== i18nPop.zh.title
@@ -625,6 +656,78 @@ async function main() {
       await pop.reload({ waitUntil: 'load' });
       await sleep(400);
 
+      const popupToday = await pop.evaluate(() => window.WT_CONFIG.todayKey());
+      await pop.evaluate((day) => chrome.storage.local.set({
+        preferredLang: 'en',
+        targetLang: 'zh',
+        triggerMode: 'auto',
+        usage: { byDay: { [day]: 7 } }
+      }), popupToday);
+      await pop.reload({ waitUntil: 'load' });
+      await sleep(400);
+
+      const quickControls = await pop.evaluate(() => {
+        const target = document.getElementById('targetLang');
+        const trigger = document.getElementById('triggerMode');
+        return {
+          targetValues: target ? Array.from(target.options).map((o) => o.value) : [],
+          targetTexts: target ? Array.from(target.options).map((o) => o.textContent) : [],
+          target: target ? target.value : '',
+          trigger: trigger ? trigger.checked : null,
+          triggerAuto: (document.getElementById('triggerAutoLabel') || {}).textContent || '',
+          triggerManual: (document.getElementById('triggerManualLabel') || {}).textContent || '',
+          triggerAutoActive: document.getElementById('triggerAutoLabel')
+            ? document.getElementById('triggerAutoLabel').classList.contains('active') : false,
+          triggerManualActive: document.getElementById('triggerManualLabel')
+            ? document.getElementById('triggerManualLabel').classList.contains('active') : false,
+          triggerDesc: (document.getElementById('triggerDesc') || {}).textContent || '',
+          usage: (document.getElementById('usageToday') || {}).textContent || ''
+        };
+      });
+      ok('popup 只提供目标语言快捷调整，并排除当前首选语言',
+        quickControls.target === 'zh'
+          && quickControls.targetValues.indexOf('en') === -1
+          && quickControls.targetValues.length === 10,
+        JSON.stringify(quickControls));
+      ok('popup 显示今日已翻译次数',
+        quickControls.usage === '7', JSON.stringify(quickControls));
+      ok('popup 触发方式 switch 默认是自动翻译',
+        quickControls.trigger === true && quickControls.triggerAuto === '自动'
+          && quickControls.triggerManual === '手动'
+          && quickControls.triggerAutoActive
+          && !quickControls.triggerManualActive
+          && /自动翻译|选中后自动翻译/.test(quickControls.triggerDesc),
+        JSON.stringify(quickControls));
+
+      await pop.click('#triggerMode');
+      await sleep(250);
+      const manualQuick = await pop.evaluate(async () => ({
+        checked: document.getElementById('triggerMode').checked,
+        desc: (document.getElementById('triggerDesc') || {}).textContent || '',
+        stored: (await chrome.storage.local.get({ triggerMode: '' })).triggerMode
+      }));
+      ok('popup switch 可以切到手动触发并写入存储',
+        manualQuick.checked === false && manualQuick.stored === 'manual'
+          && /手动确认|点击图标/.test(manualQuick.desc),
+        JSON.stringify(manualQuick));
+
+      await pop.click('#triggerMode');
+      await pop.select('#targetLang', 'ja');
+      await sleep(250);
+      const changedQuick = await pop.evaluate(async () => ({
+        target: document.getElementById('targetLang').value,
+        trigger: (await chrome.storage.local.get({ triggerMode: '' })).triggerMode,
+        storedTarget: (await chrome.storage.local.get({ targetLang: '' })).targetLang
+      }));
+      ok('popup 快捷设置恢复自动触发并可切换目标语言',
+        changedQuick.trigger === 'auto' && changedQuick.storedTarget === 'ja'
+          && changedQuick.target === 'ja',
+        JSON.stringify(changedQuick));
+      await pop.evaluate(() => chrome.storage.local.set({
+        targetLang: 'zh', triggerMode: 'auto'
+      }));
+      await sleep(300);
+
       const langBefore = await pop.evaluate(() => {
         const btn = document.getElementById('lang');
         const theme = document.getElementById('theme');
@@ -634,6 +737,7 @@ async function main() {
           title: btn ? btn.title : '',
           h1: (document.querySelector('[data-i18n="pop.title"]') || {}).textContent || '',
           htmlLang: document.documentElement.getAttribute('lang'),
+          targetText: (document.getElementById('targetLang').options[0] || {}).textContent || '',
           // 与主题按钮并排：两者的垂直中心要对齐（并排量的是这个，不是目测）
           centerGap: (btn && theme)
             ? Math.round(Math.abs(
@@ -771,8 +875,12 @@ async function main() {
       ok('开关重新打开后恢复弹浮层', a.display === 'block', `display=${a.display}`);
 
       // ---- 主题切换（popup 右上角 + 全局生效）----
+      await pop.evaluate(() => chrome.storage.local.set({ theme: 'dark' }));
+      await pop.reload({ waitUntil: 'load' });
+      await sleep(400);
       const t0 = await pop.evaluate(() => {
         const btn = document.getElementById('theme');
+        const card = document.querySelector('.card');
         const cs = getComputedStyle(btn);
         const r = btn.getBoundingClientRect();
         return {
@@ -787,6 +895,7 @@ async function main() {
           shadow: cs.boxShadow,
           size: Math.round(r.width) + 'x' + Math.round(r.height),
           bodyBg: getComputedStyle(document.body).backgroundColor,
+          cardBg: card ? getComputedStyle(card).backgroundColor : '',
         };
       });
       ok('popup 右上角有主题按钮（含太阳与月亮两个图标）',
@@ -794,6 +903,10 @@ async function main() {
       ok('主题按钮看起来像按钮：有描边 + 有底色 + 有阴影，且底色与弹层背景不同',
         parseFloat(t0.border) > 0 && t0.shadow !== 'none' && t0.bg !== t0.bodyBg,
         `${t0.size} · 描边 ${t0.border} · 底色 ${t0.bg}（弹层 ${t0.bodyBg}）· 阴影 ${t0.shadow}`);
+      ok('深色 popup 外层使用深灰，卡片与外层有层次',
+        t0.theme === 'dark' && t0.bodyBg !== 'rgb(30, 30, 30)'
+          && t0.cardBg && t0.cardBg !== t0.bodyBg,
+        `外层=${t0.bodyBg} 卡片=${t0.cardBg}`);
 
       await pop.click('#theme');
       await sleep(350);
