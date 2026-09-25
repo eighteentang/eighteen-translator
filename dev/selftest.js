@@ -785,7 +785,7 @@ function check(name, cond, extra) {
   const SPEAK_KEYS = ['step.slow', 'step.normal', 'step.fast', 'opt.secSpeak', 'opt.speakRate',
     'opt.speakRateDesc', 'opt.speakAccent', 'opt.speakAccentDesc', 'opt.accentAuto',
     'opt.accentUS', 'opt.accentGB', 'opt.speakNote',
-    'panel.readSrc', 'panel.readOut', 'panel.stopRead', 'panel.noVoice', 'panel.noVoiceLang',
+    'panel.readOut', 'panel.stopRead', 'panel.noVoice', 'panel.noVoiceLang',
     'panel.readFail'];
   const speakMissKey = SPEAK_KEYS.filter((k) => !(k in SPEAK_ZH) || !(k in SPEAK_EN));
   check('朗读：语速 / 口音 / 浮层按钮的文案键都在（zh 与 en）（#10）',

@@ -913,49 +913,52 @@ async function main() {
          按钮在不在、点了会不会报脚本错误、点下去**有没有反应**、没有语音包时说不说得清楚。
          **「真的发出声音」这一条验不了**，必须真机确认（issue 评论里写明了）。
 
-         这一段的两个标签在两种界面语言下都认 —— 别把断言钉死在中文上
+         这一段的 aria-label 在两种界面语言下都认 —— 别把断言钉死在中文上
          （上面的用例切过界面语言，而且它本来就是可切的）。 */
-      const READ_SRC = ['读原文', 'Read original'];
-      const READ_OUT = ['读译文', 'Read translation'];
+      const READ_OUT = ['朗读译文', 'Read translation'];
+      const STOP_READ = ['停止', 'Stop'];
 
-      const readState = () => page.evaluate(([src, out]) => {
+      const readState = () => page.evaluate(([out, stop]) => {
         const el = document.getElementById('wt-translate-host');
         const sr = el && el.shadowRoot;
         const btns = sr ? Array.from(sr.querySelectorAll('.tools .btn')) : [];
         const labels = btns.map((b) => b.textContent);
+        const speak = sr && sr.querySelector('.tools .icon-btn');
         const hint = sr ? sr.querySelector('.speak-hint') : null;
         const p = sr ? sr.querySelector('.panel') : null;
         return {
           labels: labels,
-          hasSrc: labels.some((l) => src.indexOf(l) >= 0),
-          hasOut: labels.some((l) => out.indexOf(l) >= 0),
-          // 朗读中那两个字会变成「停止」/「Stop」—— 这是「看得出来的状态」
-          speaking: labels.some((l) => /停止|Stop/.test(l)),
+          hasSpeak: !!speak,
+          hasIcon: !!(speak && speak.querySelector('svg')),
+          hasVisibleText: !!(speak && speak.textContent.trim()),
+          aria: speak ? speak.getAttribute('aria-label') : '',
+          speaking: !!speak && stop.indexOf(speak.getAttribute('aria-label')) >= 0,
           hint: hint ? hint.textContent : '',
           voices: window.speechSynthesis ? window.speechSynthesis.getVoices().length : -1,
           text: p ? (p.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 60) : '',
         };
-      }, [READ_SRC, READ_OUT]);
+      }, [READ_OUT, STOP_READ]);
 
       const readUi = await readState();
-      ok('浮层工具条里有朗读按钮（读原文 / 读译文）（#10）',
-        readUi.hasSrc && readUi.hasOut, JSON.stringify(readUi.labels));
+      ok('浮层工具条里只有一个喇叭形朗读按钮，且没有可见文字（#10）',
+        readUi.hasSpeak && readUi.hasIcon && !readUi.hasVisibleText
+          && READ_OUT.indexOf(readUi.aria) >= 0,
+        JSON.stringify(readUi));
 
-      const boxOf = (re) => page.evaluate((src) => {
+      const speakBox = () => page.evaluate(() => {
         const el = document.getElementById('wt-translate-host');
         const sr = el && el.shadowRoot;
-        const btns = sr ? Array.from(sr.querySelectorAll('.tools .btn')) : [];
-        const target = btns.filter((b) => new RegExp(src).test(b.textContent))[0];
+        const target = sr && sr.querySelector('.tools .icon-btn');
         if (!target) return null;
         const r = target.getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
-      }, re.source);
+      });
 
       /* ⚠️ 用**真实鼠标点击**，不用 `element.click()`。
          浮层在 Shadow DOM 里、由 content script 的隔离世界创建，
          实测 `element.click()` 派发的事件到不了那边的监听器（点了没反应，
          而且不报错）—— 与浮层上其它按钮的验法保持一致（见上面的 altBtn）。 */
-      const readBox = await boxOf(/读译文|Read translation/);
+      const readBox = await speakBox();
       if (readBox) await page.mouse.click(readBox.x, readBox.y);
 
       /* 轮询而不是等固定时长：一句「E2E 译文」不到一秒就读完了，
@@ -991,7 +994,7 @@ async function main() {
       await sleep(400);
       await selectAndMouseUp(page, 'p1');
       await sleep(1600);
-      const thBox = await boxOf(/读译文|Read translation/);
+      const thBox = await speakBox();
       if (thBox) await page.mouse.click(thBox.x, thBox.y);
       await sleep(1000);
       const thState = await readState();
@@ -1002,7 +1005,7 @@ async function main() {
         hasThai || thState.text.indexOf('E2E') >= 0, JSON.stringify(thState.text));
 
       // 收尾：把朗读停掉、语言改回去，别影响后面的用例
-      const stopBox = await boxOf(/停止|Stop/);
+      const stopBox = await speakBox();
       if (stopBox) await page.mouse.click(stopBox.x, stopBox.y);
       await sleep(400);
       await worker.evaluate(() => chrome.storage.local.set({ targetLang: 'zh' }));

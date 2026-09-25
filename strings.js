@@ -50,10 +50,9 @@
       'panel.copied': '已复制',
       'panel.copyFail': '复制失败',
       'panel.close': '关闭',
-      /* 朗读（#10）。两个按钮：读原文 / 读译文 —— 读的过程中标签变成「停止」，
-         这是「看得出来的状态」，不能只靠颜色深浅。 */
-      'panel.readSrc': '读原文',
-      'panel.readOut': '读译文',
+      /* 朗读（#10）。只有一个朗读译文的图标按钮，读的过程中变成停止图标；
+         title / aria-label 仍然需要这两条文案。 */
+      'panel.readOut': '朗读译文',
       'panel.stopRead': '停止',
       'panel.noVoice': '这台设备没有可用的语音包，朗读不可用',
       'panel.noVoiceLang': '没有{lang}的语音包',
@@ -350,7 +349,6 @@
       'panel.copied': 'Copied',
       'panel.copyFail': 'Copy failed',
       'panel.close': 'Close',
-      'panel.readSrc': 'Read original',
       'panel.readOut': 'Read translation',
       'panel.stopRead': 'Stop',
       'panel.noVoice': 'No speech voices are available on this device',
