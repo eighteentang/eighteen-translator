@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Eighteen Translator - 纯净免费划词翻译",
+    "description": "扩展名。会显示在安装对话框、chrome://extensions 与商店页。⚠️ 上架后改名要重新审核；另注意商店对名字另有 45 字符的硬上限（manifest 本身允许 75）。"
+  },
+  "extDesc": {
+    "message": "选中网页文字即可看到译文。支持 DeepSeek 与 Google 两种引擎，需自行配置 API Key。",
+    "description": "manifest 的 description，Chrome 上限 132 字符。"
+  },
+  "extActionTitle": {
+    "message": "划词翻译",
+    "description": "工具栏图标悬停时显示的提示文字。"
+  }
+}

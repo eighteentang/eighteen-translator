@@ -1,8 +1,13 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="i18n-pending">
 <head>
 <meta charset="utf-8">
-<title>划词翻译</title>
+<!-- 文案由 strings.js 填（#39），所以这里先是空的 -->
+<title></title>
+<!-- 主题要在 <head> 里同步加载：theme.js 会在扩展页面里立刻给 <html> 写上 data-theme，
+     否则会先按一套配色画出来、再被改掉（首帧闪一下）。MV3 禁止内联 <script>，
+     所以这件事只能由一个脚本文件在加载时自己做。 -->
+<script src="theme.js"></script>
 <style>
   :root {
     --bg: #ffffff;
@@ -13,24 +18,38 @@
     --accent: #2f6fed;
     --warn: #c0392b;
     --ok: #1f8a4c;
+    /* 图标按钮的底色：必须和弹层背景拉开一档，否则它看起来只是个图标、不像按钮 */
+    --btn-surface: #f0f0f2;
+    --btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.10);
+    --btn-shadow-hover: 0 2px 6px rgba(0, 0, 0, 0.16);
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1e1e1e;
-      --fg: #e8e8e8;
-      --muted: #9a9a9a;
-      --line: rgba(255, 255, 255, 0.14);
-      --card: #262626;
-      --accent: #6f9dff;
-      --warn: #ff8f85;
-      --ok: #6ddba0;
-    }
+  /* 主题：由 theme.js 把 auto 解析成 light / dark 写到 <html data-theme>，
+     所以 CSS 里只需要两套配色，不必再写媒体查询。 */
+  :root[data-theme="dark"] {
+    --bg: #1e1e1e;
+    --fg: #e8e8e8;
+    --muted: #9a9a9a;
+    --line: rgba(255, 255, 255, 0.14);
+    --card: #262626;
+    --accent: #6f9dff;
+    --warn: #ff8f85;
+    --ok: #6ddba0;
+    --btn-surface: #313131;
+    /* 深色底上黑阴影几乎看不见，改用更亮的描边来「浮起来」 */
+    --btn-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --btn-shadow-hover: 0 2px 7px rgba(0, 0, 0, 0.6);
   }
+  /* 文案由 JS 填（#39）—— 填之前先藏住，否则会先闪一下空标签。
+     ⚠️ 万一 JS 挂了弹层会一直白着，所以 popup.js 的**第一件事**就是同步调 applyI18n()。 */
+  html.i18n-pending body { visibility: hidden; }
   * { box-sizing: border-box; }
+  /* 显式给 <html> 上底色：弹窗窗口的圆角由浏览器绘制，
+     如果只有 body 有底色，深色模式下圆角边缘可能漏出一条浅色。 */
+  html { background: var(--bg); }
   body {
     width: 316px;
     margin: 0;
-    padding: 13px 13px 11px;
+    padding: 13px 13px 12px;
     background: var(--bg);
     color: var(--fg);
     font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
@@ -38,7 +57,7 @@
     line-height: 1.6;
   }
   h1 {
-    margin: 0 0 10px;
+    margin: 0 0 11px;
     font-size: 14px;
     font-weight: 600;
     display: flex;
@@ -46,9 +65,97 @@
     justify-content: space-between;
   }
   h1 .ver { color: var(--muted); font-size: 11px; font-weight: 400; }
+  .head-right { display: inline-flex; align-items: center; gap: 8px; }
+
+  /* ---- 主题切换按钮（右上角）----
+     做成「描边 + 底色 + 阴影」的圆形图标按钮，而不是一个裸图标：
+     裸图标和弹层背景区分不开，用户不知道它可点。 */
+  .theme {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--btn-surface);
+    color: var(--muted);
+    box-shadow: var(--btn-shadow);
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease,
+                box-shadow .18s ease, transform .12s ease;
+  }
+  .theme:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: var(--btn-shadow-hover);
+  }
+  /* 按下去要有「陷下去」的反馈，否则点完不知道有没有生效 */
+  .theme:active { transform: scale(.93); box-shadow: var(--btn-shadow); }
+  .theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .theme svg { width: 14px; height: 14px; display: block; overflow: visible; }
+
+  /* ---- 界面语言快捷按钮（右上角，与主题按钮并排）（#57 / #35 第 3 步）----
+     同款「描边 + 底色 + 阴影」，只是做成小胶囊、里面放字母而不是图标。
+     ⚠️ 里面那两个字母（EN / CN）**刻意不跟着翻译** —— 见 popup.js 的注释。 */
+  .lang {
+    all: unset;
+    box-sizing: border-box;
+    cursor: pointer;
+    flex: none;
+    height: 24px;
+    min-width: 32px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--btn-surface);
+    color: var(--muted);
+    box-shadow: var(--btn-shadow);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    transition: color .18s ease, background-color .18s ease, border-color .18s ease,
+                box-shadow .18s ease, transform .12s ease;
+  }
+  .lang:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: var(--btn-shadow-hover);
+  }
+  .lang:active { transform: scale(.93); box-shadow: var(--btn-shadow); }
+  .lang:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  /* 太阳与月亮叠在同一位置，靠「旋转 + 缩放 + 透明度」互换。
+     不做位移，所以任何尺寸、任何对齐方式下都不会跑偏。
+     0.42s 的 cubic-bezier(.4,0,.2,1) 是 Material 的标准缓动 ——
+     起步快、收尾慢，看起来像「转过来」而不是「闪一下」。 */
+  .theme .sun, .theme .moon {
+    transform-origin: 50% 50%;
+    transition: transform .42s cubic-bezier(.4, 0, .2, 1), opacity .26s ease;
+  }
+  :root[data-theme="light"] .theme .sun { transform: rotate(0deg) scale(1); opacity: 1; }
+  :root[data-theme="light"] .theme .moon { transform: rotate(-90deg) scale(.3); opacity: 0; }
+  :root[data-theme="dark"] .theme .sun { transform: rotate(90deg) scale(.3); opacity: 0; }
+  :root[data-theme="dark"] .theme .moon { transform: rotate(0deg) scale(1); opacity: 1; }
+
+  /* 系统开了「减弱动态效果」就不要转 —— 只做一次极短的淡入淡出 */
+  @media (prefers-reduced-motion: reduce) {
+    .theme .sun, .theme .moon { transition: opacity .12s linear; transform: none; }
+    :root[data-theme="light"] .theme .moon,
+    :root[data-theme="dark"] .theme .sun { transform: none; }
+  }
+
+  /* 圆角比改造前放大一档（9 → 12）。弹窗窗口的圆角是浏览器画的、CSS 改不了，
+     所以「看起来锐利」只能靠内部元素跟着变柔和来缓解。 */
   .card {
     border: 1px solid var(--line);
-    border-radius: 9px;
+    border-radius: 12px;
     background: var(--card);
     padding: 3px 12px;
     margin-bottom: 10px;
@@ -60,48 +167,62 @@
     gap: 12px;
     padding: 9px 0;
   }
-  .row + .row { border-top: 1px solid var(--line); }
   .row .desc { display: block; color: var(--muted); font-size: 11px; margin-top: 1px; }
-  .cap {
-    margin: 0 0 6px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--muted);
-    letter-spacing: 0.04em;
-  }
-  label.opt {
-    display: flex;
-    align-items: flex-start;
-    gap: 9px;
-    padding: 9px 0;
-    cursor: pointer;
-  }
-  label.opt + label.opt { border-top: 1px solid var(--line); }
-  label.opt input { margin: 3px 0 0; flex: none; }
-  label.opt .name { font-size: 13px; }
-  label.opt .hint { display: block; color: var(--muted); font-size: 11px; }
-  label.opt .hint.warn { color: var(--warn); }
-  label.opt .hint.ok { color: var(--ok); }
-  .meta {
+
+  /* 未配置 API Key 时的提示 —— 引擎选择搬到设置页之后，
+     这里是弹层里唯一还能提醒「为什么翻译不出来」的地方。 */
+  .warnline {
     margin: 0 0 10px;
-    color: var(--muted);
+    padding: 8px 11px;
+    border-left: 2px solid var(--warn);
+    border-radius: 0 8px 8px 0;
+    background: var(--card);
+    color: var(--warn);
     font-size: 11px;
+    line-height: 1.5;
   }
-  .meta b { color: var(--fg); font-weight: 500; }
-  button {
+  .warnline:empty { display: none; }
+
+  .actions { display: flex; flex-direction: column; gap: 7px; }
+  button, a.btn {
+    display: block;
     width: 100%;
-    padding: 7px 14px;
-    border: 1px solid var(--line);
-    border-radius: 7px;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
     background: transparent;
     color: var(--fg);
     font-family: inherit;
     font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+    text-decoration: none;
     cursor: pointer;
+    transition: background-color .16s ease, border-color .16s ease,
+                color .16s ease, box-shadow .16s ease;
   }
-  button:hover { border-color: var(--accent); color: var(--accent); }
+  /* 主操作：实心。弹层里只有「完整设置」是主线，给它最强的视觉权重 */
+  button.primary {
+    background: var(--accent);
+    color: #ffffff;
+    box-shadow: var(--btn-shadow);
+  }
+  button.primary:hover { filter: brightness(1.08); box-shadow: var(--btn-shadow-hover); }
+  button.primary:active { filter: brightness(0.95); }
+  /* 次操作：描边 */
+  a.btn.ghost, button.ghost {
+    border-color: var(--line);
+    background: var(--bg);
+    color: var(--muted);
+  }
+  a.btn.ghost:hover, button.ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  button:focus-visible, a.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
   #status {
-    margin: 7px 0 0;
+    margin: 8px 0 0;
     min-height: 16px;
     color: var(--muted);
     font-size: 11px;
@@ -113,42 +234,73 @@
 </head>
 <body>
 
-<h1>划词翻译<span class="ver" id="ver"></span></h1>
+<h1>
+  <span data-i18n="pop.title"></span>
+  <span class="head-right">
+    <span class="ver" id="ver"></span>
+    <!-- 界面语言快捷按钮（#57 / #35 第 3 步）。
+         里面那两个字（EN / CN）由 popup.js 填，**刻意不跟着翻译** ——
+         中文界面显示 EN、英文界面显示 CN，也就是「点一下会切到哪边」。
+         它要是一起翻译了就会自指（中文界面写着「英文」，点了到底切哪儿？）。
+         提示文字（title / aria-label）同样是 JS 填的，它跟着当前语言走。 -->
+    <button class="lang" id="lang" type="button"></button>
+    <!-- aria-label / title 由 popup.js 填（#39）：它的内容跟着当前主题走
+         （「切换到深色模式」/「切换到浅色模式」），不是一条静态文案，
+         所以这里不写 data-i18n-*，也不留中文占位 -->
+    <button class="theme" id="theme" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <g class="sun">
+          <circle cx="12" cy="12" r="4.4"></circle>
+          <line x1="12" y1="2.2" x2="12" y2="4.4"></line>
+          <line x1="12" y1="19.6" x2="12" y2="21.8"></line>
+          <line x1="2.2" y1="12" x2="4.4" y2="12"></line>
+          <line x1="19.6" y1="12" x2="21.8" y2="12"></line>
+          <line x1="5.1" y1="5.1" x2="6.6" y2="6.6"></line>
+          <line x1="17.4" y1="17.4" x2="18.9" y2="18.9"></line>
+          <line x1="5.1" y1="18.9" x2="6.6" y2="17.4"></line>
+          <line x1="17.4" y1="6.6" x2="18.9" y2="5.1"></line>
+        </g>
+        <path class="moon" d="M20.5 13.2A8.6 8.6 0 1 1 10.8 3.5 6.7 6.7 0 0 0 20.5 13.2z"></path>
+      </svg>
+    </button>
+  </span>
+</h1>
 
 <div class="card">
   <div class="row">
     <span>
-      启用划词翻译
-      <span class="desc">关闭后所有网页都不再触发</span>
+      <span data-i18n="pop.enabled"></span>
+      <span class="desc" data-i18n="pop.enabledDesc"></span>
     </span>
     <input type="checkbox" id="enabled">
   </div>
+  <!-- #29 的 popup 侧入口。勾上 = 把当前域名加进设置页那个排除列表。
+       ⚠️ 勾选框的状态是**算出来的**（当前域名有没有被列表命中），不是存起来的 ——
+       两处各存一份的话，设置页里改了列表、这里还显示着旧状态。 -->
+  <div class="row">
+    <span>
+      <span data-i18n="pop.siteOff"></span>
+      <span class="desc" id="siteDesc"></span>
+    </span>
+    <input type="checkbox" id="siteOff">
+  </div>
 </div>
 
-<p class="cap">翻译引擎</p>
-<div class="card">
-  <label class="opt">
-    <input type="radio" name="engine" value="deepseek">
-    <span>
-      <span class="name">DeepSeek</span>
-      <span class="hint" id="hint-deepseek">—</span>
-    </span>
-  </label>
-  <label class="opt">
-    <input type="radio" name="engine" value="google">
-    <span>
-      <span class="name">Google 免费接口</span>
-      <span class="hint">零配置，公共接口可能返回 429</span>
-    </span>
-  </label>
+<p class="warnline" id="warnline"></p>
+
+<!-- 弹层只放高频操作。引擎、凭据、翻译方向、主题全部在设置页里改。 -->
+<div class="actions">
+  <button id="open-options" class="primary" type="button" data-i18n="pop.options"></button>
+  <a class="btn ghost" id="feedback" target="_blank" rel="noopener"
+     href="https://github.com/eighteentang/eighteen-translator/issues/new"
+     data-i18n="pop.feedback"></a>
 </div>
-
-<p class="meta">服务模式：<b id="quota-label">—</b></p>
-
-<button id="open-options">完整设置</button>
 <div id="status"></div>
 
 <script src="config.js"></script>
+<script src="strings.js"></script>
+<script src="sites.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

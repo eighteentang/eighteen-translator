@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="i18n-pending">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>划词翻译 · 设置</title>
+<!-- 文案由 strings.js 填（#39），所以这里先是空的 -->
+<title></title>
+<!-- 主题在 <head> 里同步加载，避免首帧闪一下（详见 theme.js 的注释） -->
+<script src="theme.js"></script>
 <style>
   :root {
     --bg: #ffffff;
@@ -15,18 +18,22 @@
     --danger: #c0392b;
     --ok: #1f8a4c;
   }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #1e1e1e;
-      --fg: #e8e8e8;
-      --muted: #9a9a9a;
-      --line: rgba(255, 255, 255, 0.14);
-      --card: #262626;
-      --accent: #6f9dff;
-      --danger: #ff8f85;
-      --ok: #6ddba0;
-    }
+  /* 主题：由 theme.js 把 auto 解析成 light / dark 写到 <html data-theme>，
+     所以这里只需要两套配色，不必再写媒体查询。 */
+  :root[data-theme="dark"] {
+    --bg: #1e1e1e;
+    --fg: #e8e8e8;
+    --muted: #9a9a9a;
+    --line: rgba(255, 255, 255, 0.14);
+    --card: #262626;
+    --accent: #6f9dff;
+    --danger: #ff8f85;
+    --ok: #6ddba0;
   }
+  /* 文案由 JS 填（#39）—— 填之前先藏住，否则会先闪一下空标签。
+     ⚠️ 万一 JS 挂了，页面会一直白着，所以 options.js 的**第一件事**就是同步
+     调 applyI18n()，不等 storage 读回来。 */
+  html.i18n-pending body { visibility: hidden; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -45,7 +52,7 @@
     padding: 11px 14px;
     border: 1px solid var(--line);
     border-left: 3px solid var(--accent);
-    border-radius: 9px;
+    border-radius: 12px;
     background: var(--card);
     color: var(--muted);
     font-size: 13px;
@@ -71,7 +78,7 @@
   section { margin-bottom: 26px; }
   .card {
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: 12px;
     background: var(--card);
     padding: 4px 14px;
   }
@@ -103,17 +110,43 @@
   .field { padding: 11px 0; }
   .field + .field { border-top: 1px solid var(--line); }
   .field label { display: block; font-size: 13px; margin-bottom: 5px; }
+  /* 翻译方向：两个下拉必须并排同一行 —— 它们是「一对」，分开放会让人看不出关系。
+     只有窄到放不下时才折行（不是设计意图，是兜底）。 */
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 11px 0;
+  }
+  .pair-item label { display: block; font-size: 13px; margin-bottom: 5px; }
+  .pair-item .desc { display: block; color: var(--muted); font-size: 12px; margin-top: 5px; }
+  @media (max-width: 460px) {
+    .pair { grid-template-columns: 1fr; }
+  }
   input[type="text"], input[type="password"], select {
     width: 100%;
     padding: 8px 10px;
     border: 1px solid var(--line);
-    border-radius: 7px;
+    border-radius: 9px;
     background: var(--bg);
     color: var(--fg);
     font-family: inherit;
     font-size: 13px;
   }
-  input[type="text"]:focus, input[type="password"]:focus, select:focus {
+  /* 排除列表（#29）用等宽字体：一行一个域名，看错一个字母就是「加了没用」 */
+  textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    resize: vertical;
+  }
+  input[type="text"]:focus, input[type="password"]:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--accent);
   }
@@ -127,7 +160,7 @@
   button {
     padding: 8px 18px;
     border: 1px solid transparent;
-    border-radius: 7px;
+    border-radius: 10px;
     background: var(--accent);
     color: #ffffff;
     font-family: inherit;
@@ -143,6 +176,56 @@
   .status { font-size: 13px; color: var(--muted); }
   .status.err { color: var(--danger); }
   .status.ok { color: var(--ok); }
+  /* 凭据输入框 + 显示 / 隐藏按钮并排 —— 按钮不撑宽输入框（min-width: 0 是必须的，
+     否则 flex 子项的默认最小宽度会按内容撑开） */
+  .secret { display: flex; gap: 8px; }
+  .secret input { flex: 1 1 auto; min-width: 0; }
+  button.small {
+    flex: none;
+    padding: 8px 12px;
+    font-size: 12px;
+    background: transparent;
+    border-color: var(--line);
+    color: var(--fg);
+  }
+  /* 「今日已翻译 N 次」里的数字 —— 等宽 + 固定最小宽度，
+     免得从 9 跳到 10 时整行文字左右抖一下。 */
+  .num {
+    flex: none;
+    min-width: 2.5em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  /* 到上限时数字变红 —— 用颜色表达状态，而**不是**把上限值写出来（#19） */
+  .num.at-cap { color: var(--danger); }
+  /* 页脚：把「反馈建议」也放一份 —— 用户在设置页待的时间最长，
+     想吐槽的时候通常正是在这一页。 */
+  .foot {
+    margin-top: 30px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .foot a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line); }
+  .foot a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .foot-links { display: flex; align-items: center; gap: 14px; }
+  /* 「复制诊断信息」要看起来像页脚里的一个链接，而不是一个主按钮 ——
+     它是辅助动作，不该和上面的「保存」抢注意力。 */
+  button.linkish {
+    all: unset;
+    cursor: pointer;
+    color: var(--muted);
+    border-bottom: 1px solid var(--line);
+  }
+  button.linkish:hover { color: var(--accent); border-bottom-color: var(--accent); }
   .note {
     margin: 8px 0 0;
     padding: 10px 12px;
@@ -150,21 +233,34 @@
     color: var(--muted);
     font-size: 12px;
   }
+  .note.warn {
+    border-left-color: var(--danger);
+    color: var(--danger);
+  }
+  .note:empty { display: none; }
+  /* 说明文案里的代码片段（域名、https:// 之类）—— 让它一眼看出是「要照抄的东西」 */
+  .note code {
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(128, 128, 128, 0.18);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>划词翻译</h1>
-  <p class="sub">在任意网页选中文字，松开鼠标即可看到译文。</p>
+  <h1 data-i18n="opt.h1"></h1>
+  <p class="sub" data-i18n="opt.sub"></p>
 
-  <div class="banner">首次使用请先选好引擎：DeepSeek 需要填 API Key，Google 免费接口无需任何配置。</div>
+  <div class="banner" data-i18n="opt.banner"></div>
 
   <section>
     <div class="card">
       <div class="row">
         <span class="label">
-          启用划词翻译
-          <span class="desc">关闭后所有网页都不再触发</span>
+          <span data-i18n="opt.enabled"></span>
+          <span class="desc" data-i18n="opt.enabledDesc"></span>
         </span>
         <input type="checkbox" id="enabled">
       </div>
@@ -172,76 +268,261 @@
   </section>
 
   <section>
-    <h2>服务模式</h2>
+    <h2 data-i18n="opt.secMode"></h2>
     <div class="card">
       <label class="engine">
         <input type="radio" name="quotaMode" value="own">
         <span>
-          <span class="name">使用自己的 API Key<span class="badge">默认</span></span>
-          <span class="hint">需自行申请凭据，翻译费用由自己承担</span>
+          <span class="name"><span data-i18n="opt.ownKey"></span><span class="badge" data-i18n="opt.badgeDefault"></span></span>
+          <span class="hint" data-i18n="opt.ownKeyHint"></span>
         </span>
       </label>
       <label class="engine disabled">
         <input type="radio" name="quotaMode" value="free" disabled>
         <span>
-          <span class="name">平台免费额度<span class="badge muted">测试中</span></span>
-          <span class="hint">无需任何配置，装上即用 —— 尚未开放</span>
+          <span class="name"><span data-i18n="opt.free"></span><span class="badge muted" data-i18n="opt.badgeTesting"></span></span>
+          <span class="hint" data-i18n="opt.freeHint"></span>
         </span>
       </label>
     </div>
-    <p class="note">平台免费额度由本扩展的服务端代付，目前仍在测试、暂未开放。在此之前请使用自己的 API Key。</p>
+    <p class="note" data-i18n="opt.freeNote"></p>
   </section>
 
   <section id="sec-engine">
-    <h2>翻译引擎</h2>
+    <h2 data-i18n="opt.secEngine"></h2>
     <div class="card">
       <label class="engine">
         <input type="radio" name="engine" value="deepseek">
         <span>
-          <span class="name">DeepSeek<span class="badge">推荐</span></span>
-          <span class="hint">需 API Key。能结合语境翻译，单次成本约万分之几元</span>
+          <span class="name">DeepSeek<span class="badge" data-i18n="opt.badgeRecommended"></span></span>
+          <span class="hint" data-i18n="opt.dsHint"></span>
         </span>
       </label>
       <label class="engine">
         <input type="radio" name="engine" value="google">
         <span>
-          <span class="name">Google 免费接口</span>
-          <span class="hint">零配置，但公共接口对共享 IP 限流严格，可能返回 429</span>
+          <span class="name" data-i18n="opt.googleName"></span>
+          <span class="hint" data-i18n="opt.googleHint"></span>
         </span>
       </label>
     </div>
   </section>
 
   <section id="cfg-deepseek" class="cfg">
-    <h2>DeepSeek 凭据</h2>
+    <h2 data-i18n="opt.secKey"></h2>
     <div class="card">
       <div class="field">
-        <label for="deepseekKey">API Key</label>
-        <input type="password" id="deepseekKey" autocomplete="off" spellcheck="false" placeholder="sk-...">
+        <label for="deepseekKey" data-i18n="opt.keyLabel"></label>
+        <div class="secret">
+          <input type="password" id="deepseekKey" autocomplete="off" spellcheck="false" placeholder="sk-...">
+          <button id="toggleKey" class="small" type="button" data-i18n="opt.show"></button>
+        </div>
       </div>
     </div>
-    <p class="note">在 DeepSeek 开放平台创建 API Key 并充值后使用。按官方定价，一次划词翻译的成本在万分之几元的量级。</p>
+    <p class="note" data-i18n="opt.keyNote"></p>
+    <p class="note" data-i18n="opt.keyNote2"></p>
   </section>
 
   <section>
-    <h2>目标语言</h2>
+    <h2 data-i18n="opt.secDir"></h2>
+    <div class="card">
+      <div class="pair">
+        <div class="pair-item">
+          <label for="preferredLang" data-i18n="opt.preferred"></label>
+          <select id="preferredLang"></select>
+          <span class="desc" data-i18n="opt.preferredDesc"></span>
+        </div>
+        <div class="pair-item">
+          <label for="targetLang" data-i18n="opt.target"></label>
+          <select id="targetLang"></select>
+          <span class="desc" data-i18n="opt.targetDesc"></span>
+        </div>
+      </div>
+    </div>
+    <p class="note" data-i18n="opt.dirNote"></p>
+    <p class="note warn" id="lang-warn"></p>
+  </section>
+
+  <!-- #35 界面语言。与「界面主题」相邻 —— 两者都是纯显示设置，改完立即生效。 -->
+  <section>
+    <h2 data-i18n="opt.secLang"></h2>
     <div class="card">
       <div class="field">
-        <select id="targetLang">
-          <option value="zh">翻译成中文</option>
-          <option value="en">翻译成英文</option>
+        <label for="uiLang" data-i18n="opt.uiLangLabel"></label>
+        <select id="uiLang"></select>
+        <span class="desc" data-i18n="opt.uiLangDesc"></span>
+      </div>
+    </div>
+    <p class="note" data-i18n="opt.uiLangNote"></p>
+  </section>
+
+  <section>
+    <h2 data-i18n="opt.secTheme"></h2>
+    <div class="card">
+      <div class="field">
+        <label for="theme" data-i18n="opt.themeLabel"></label>
+        <select id="theme">
+          <option value="auto" data-i18n="opt.themeAuto"></option>
+          <option value="light" data-i18n="opt.themeLight"></option>
+          <option value="dark" data-i18n="opt.themeDark"></option>
         </select>
       </div>
     </div>
+    <p class="note" data-i18n="opt.themeNote"></p>
   </section>
 
+  <!-- #25 浮层外观。与「界面主题」相邻 —— 两者都是纯显示设置，改完立即生效。 -->
+  <section>
+    <h2 data-i18n="opt.secPanel"></h2>
+    <div class="card">
+      <div class="pair">
+        <div class="pair-item">
+          <label for="panelFont" data-i18n="opt.fontLabel"></label>
+          <select id="panelFont"></select>
+          <span class="desc" data-i18n="opt.fontDesc"></span>
+        </div>
+        <div class="pair-item">
+          <label for="panelWidth" data-i18n="opt.widthLabel"></label>
+          <select id="panelWidth"></select>
+          <span class="desc" data-i18n="opt.widthDesc"></span>
+        </div>
+      </div>
+    </div>
+    <p class="note" data-i18n="opt.panelNote"></p>
+  </section>
+
+  <!-- #10 朗读。与「浮层外观」相邻 —— 都是「改完立即生效、只影响浮层」的设置。 -->
+  <section>
+    <h2 data-i18n="opt.secSpeak"></h2>
+    <div class="card">
+      <div class="pair">
+        <div class="pair-item">
+          <label for="speakRate" data-i18n="opt.speakRate"></label>
+          <select id="speakRate"></select>
+          <span class="desc" data-i18n="opt.speakRateDesc"></span>
+        </div>
+        <div class="pair-item">
+          <label for="speakAccent" data-i18n="opt.speakAccent"></label>
+          <select id="speakAccent"></select>
+          <span class="desc" data-i18n="opt.speakAccentDesc"></span>
+        </div>
+      </div>
+    </div>
+    <p class="note" data-i18n="opt.speakNote"></p>
+  </section>
+
+  <!-- #18 用量统计 + #19 每日上限。两者共用 background.js 里的同一个计数器，
+       所以放在同一节里 —— 用户看到的数字与拦他的数字必须是同一个。 -->
+  <section id="sec-usage">
+    <h2 data-i18n="opt.secUsage"></h2>
+    <div class="card">
+      <div class="row">
+        <span class="label">
+          <span data-i18n="opt.usageToday"></span>
+          <span class="desc" data-i18n="opt.usageTodayDesc"></span>
+        </span>
+        <span id="usageToday" class="num">—</span>
+      </div>
+      <div class="row">
+        <span class="label">
+          <span data-i18n="opt.quota"></span>
+          <span class="desc" id="quotaDesc"></span>
+        </span>
+        <button id="raiseQuota" class="small" type="button" data-i18n="opt.raise"></button>
+      </div>
+      <div class="row">
+        <span class="label">
+          <span data-i18n="opt.cache"></span>
+          <span class="desc" id="cacheDesc"></span>
+        </span>
+        <button id="clearCache" class="small" type="button" data-i18n="opt.clearCache"></button>
+      </div>
+    </div>
+    <p class="note" data-i18n="opt.usageNote"></p>
+  </section>
+
+  <!-- #60 跳过技术内容。默认开 —— 前提是浮层上永远有一个「仍然翻译」，
+       否则「默认开」就等于替用户决定了「这段你不许翻」。 -->
+  <section>
+    <h2 data-i18n="opt.secTech"></h2>
+    <div class="card">
+      <div class="row">
+        <span class="label">
+          <span data-i18n="opt.skipTech"></span>
+          <span class="desc" data-i18n="opt.skipTechDesc"></span>
+        </span>
+        <input type="checkbox" id="skipTech">
+      </div>
+    </div>
+    <p class="note" data-i18n="opt.techNote"></p>
+  </section>
+
+  <!-- #6 触发方式。默认仍是自动 —— 手动是给「读长文嫌烦」的人用的，
+       对多数人来说多一次点击是净损失。 -->
+  <section>
+    <h2 data-i18n="opt.secTrigger"></h2>
+    <div class="card">
+      <label class="engine">
+        <input type="radio" name="triggerMode" value="auto">
+        <span>
+          <span class="name"><span data-i18n="opt.auto"></span><span class="badge" data-i18n="opt.badgeDefault"></span></span>
+          <span class="hint" data-i18n="opt.autoHint"></span>
+        </span>
+      </label>
+      <label class="engine">
+        <input type="radio" name="triggerMode" value="manual">
+        <span>
+          <span class="name" data-i18n="opt.manual"></span>
+          <span class="hint" data-i18n="opt.manualHint"></span>
+        </span>
+      </label>
+    </div>
+    <p class="note" data-i18n="opt.triggerNote"></p>
+  </section>
+
+  <!-- #29 排除站点。
+       ⚠️ 文案里**不能**写「不注入」—— 内容脚本是 manifest 声明的，一定会被注入。
+       能做到的是「注入后什么都不做」，所以说的是「不翻译 / 不发请求」。 -->
+  <section>
+    <h2 data-i18n="opt.secSites"></h2>
+    <div class="card">
+      <div class="field">
+        <label for="excludeSites" data-i18n="opt.sitesLabel"></label>
+        <textarea id="excludeSites" rows="4" spellcheck="false"
+          placeholder="example.com&#10;*.google.com&#10;intranet"></textarea>
+        <span class="desc" id="sitesDesc"></span>
+      </div>
+    </div>
+    <p class="note warn" id="sites-warn"></p>
+    <p class="note" data-i18n="opt.sitesNote"></p>
+  </section>
+
+  <!-- #45 多设备同步：明确不做，但必须说清楚，否则用户会以为「登同一个账号就同步」 -->
+  <p class="note" data-i18n="opt.localOnly"></p>
+
   <div class="actions">
-    <button id="save">保存</button>
-    <button id="test" class="ghost">测试当前引擎</button>
+    <button id="save" data-i18n="opt.save"></button>
+    <button id="test" class="ghost" data-i18n="opt.test"></button>
     <span id="status" class="status"></span>
+  </div>
+
+  <div class="foot">
+    <span><span data-i18n="ext.name"></span> <span id="ver"></span></span>
+    <span class="foot-links">
+      <!-- #59 一键复制诊断信息：用户从 issue 页面提交的问题通常只有一句话，
+           没有版本 / 浏览器 / 引擎，每条都要来回问两轮。
+           ⚠️ 拼出来的文本只报「已填 / 未填」，绝不含 API Key 本身。 -->
+      <button id="diag" class="linkish" type="button" data-i18n="opt.diag"></button>
+      <a id="feedback" target="_blank" rel="noopener"
+         href="https://github.com/eighteentang/eighteen-translator/issues/new?template=bug_report.yml"
+         data-i18n="opt.feedback"></a>
+    </span>
   </div>
 </div>
 <script src="config.js"></script>
+<script src="strings.js"></script>
+<script src="lang.js"></script>
+<script src="sites.js"></script>
 <script src="options.js"></script>
 </body>
 </html>

@@ -1,0 +1,66 @@
+name: 问题反馈
+description: 划词没反应、翻译报错、界面异常 —— 填完这几项我就能直接开始查
+title: "[Bug] "
+labels: ["待规划"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        大部分「划词没反应」都是同一件事：**扩展重新加载后，已经打开的网页里跑的还是旧脚本**。
+        先试一遍 —— 到 `chrome://extensions/` 点本扩展的刷新按钮，**再刷新出问题的那个网页**。
+
+        下面的诊断信息不用手打：设置页页脚有个 **「复制诊断信息」** 按钮，点一下粘到第一栏就行。
+
+  - type: textarea
+    id: diag
+    attributes:
+      label: 诊断信息
+      description: 设置页页脚 →「复制诊断信息」→ 粘贴到这里（只含版本 / 浏览器 / 配置状态，**不含 API Key**）
+      placeholder: |
+        划词翻译 v0.4.1
+        Edge 140.0.0.0 / Win32
+        引擎: deepseek · API Key: 已填写
+        翻译方向: zh → en
+        主题: auto · 服务模式: own · 启用: 是
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 越具体越好。如果某个网站必现，把网址写上 —— 这能区分「全都不行」和「只有这个网站不行」
+      placeholder: |
+        1. 打开 https://example.com/article
+        2. 选中一段英文
+        3. 松开鼠标 → 浮层没出现
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望 vs 实际
+      placeholder: |
+        期望：浮层显示译文
+        实际：什么都没有
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: 报错原文
+      description: 浮层上如果有红字，**原样贴过来**，不要概括成「报错了」
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: tried
+    attributes:
+      label: 你已经试过
+      options:
+        - label: 重新加载扩展，并刷新了出问题的网页
+        - label: 确认「启用划词翻译」是开着的
+        - label: 在别的网站上也试过

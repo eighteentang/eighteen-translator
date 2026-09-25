@@ -1,0 +1,28 @@
+name: test
+
+# 每次 push / PR 都跑。两条都是纯 Node、零依赖 —— 不装任何东西。
+# ⚠️ dev/e2e-panel.js 进不来：它要一个真实的 Chromium 去加载扩展，
+#    构建时间与不稳定性都不划算。前端回归仍然靠本地手动跑。
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 先查文件与 manifest（#48）：这一步能挡掉「加载了但某处不工作」
+      # 和「content.js 静默失效」这类最难查的问题。
+      - name: 文件与 manifest 自检
+        run: node dev/check.js
+
+      # 再跑后台逻辑断言（#1 / #2 的取消与语言判定都在这里）
+      - name: 后台逻辑自测
+        run: node dev/selftest.js

@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "Eighteen Translator - Clean, Free Text Translation",
+    "description": "Extension name. Shown in the install dialog, chrome://extensions and the store listing. NOTE: the store caps names at 45 characters even though the manifest allows 75."
+  },
+  "extDesc": {
+    "message": "Select text on any page to see the translation. Works with DeepSeek and Google; bring your own API key.",
+    "description": "The manifest description. Chrome caps it at 132 characters."
+  },
+  "extActionTitle": {
+    "message": "Select-to-translate",
+    "description": "Tooltip shown when hovering the toolbar icon."
+  }
+}

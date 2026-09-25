@@ -16,3 +16,7 @@ desktop.ini
 
 # 依赖（本项目无 npm，留作兜底）
 node_modules/
+
+# 图标脚本的预览产物（--preview 时生成，不必进版本库）
+# ⚠️ 写到 dev/ 下而不是 icons/ —— 扩展目录里以 `_` 开头的名字是 Chrome 的保留名
+dev/icon-preview/

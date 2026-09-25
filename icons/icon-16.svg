@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!--
+    划词翻译 · 16px 专用图形
+    ────────────────────────────────────────────────────────────────
+    为什么不直接用 icon.svg 缩到 16px：
+    16px 下白色外圈与白色字母 A 只隔约 1px，两者会粘成一团白块，
+    字母认不出来（放大 8 倍复核过）。工具栏和扩展列表用的正是 16px，
+    所以这个尺寸单独做一版简化：
+
+    - 去掉全部经纬线（16px 下就是噪点）
+    - 外圈改成 60% 不透明度，退成浅蓝背景，把「地球」让位给字母
+    - 字母 A 放大并加粗，成为唯一的高对比主体
+
+    其余尺寸（32 / 48 / 128）用 icon.svg 的完整版。
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4C86FA"/>
+      <stop offset="1" stop-color="#1A45C4"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="128" height="128" rx="30" ry="30" fill="url(#bg)"/>
+
+  <!-- 淡化的地球外圈 -->
+  <circle cx="64" cy="66" r="38" fill="none" stroke="#ffffff" stroke-width="9" opacity="0.6"/>
+
+  <!-- 字母 A：先留白再画字身 -->
+  <path d="M64 49 L50 89 M64 49 L78 89 M60 76 L68 76"
+        fill="none" stroke="url(#bg)" stroke-width="18"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M64 49 L50 89 M64 49 L78 89 M60 76 L68 76"
+        fill="none" stroke="#ffffff" stroke-width="11"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 四角星 -->
+  <path d="M100 11 Q102.9 24.1 116 27 Q102.9 29.9 100 43
+           Q97.1 29.9 84 27 Q97.1 24.1 100 11 Z"
+        fill="none" stroke="url(#bg)" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M100 11 Q102.9 24.1 116 27 Q102.9 29.9 100 43
+           Q97.1 29.9 84 27 Q97.1 24.1 100 11 Z"
+        fill="#FFC93C"/>
+</svg>
