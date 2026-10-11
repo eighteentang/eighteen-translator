@@ -28,3 +28,6 @@ dev/icon-preview/
 
 # 项目根 AGENTS.md（本地 agent 指令，不进公开仓库）
 AGENTS.md
+
+# meow-memory 的记忆库（本地数据，不进版本库）
+.dsh-meow/
