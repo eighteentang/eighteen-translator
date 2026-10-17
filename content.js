@@ -151,15 +151,6 @@
       white-space: nowrap;
     }
     .btn:hover { background: rgba(128, 128, 128, 0.16); color: #444444; }
-    .icon-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 22px;
-      height: 22px;
-      padding: 0;
-    }
-    .icon-btn svg { width: 15px; height: 15px; display: block; fill: currentColor; }
     /* 错误文案下方的动作按钮（如「去设置」）—— 要看起来能点，
        不能做成 .btn 那种纯文字，否则和「复制 / 关闭」混在一起看不出来。 */
     .act {
@@ -292,7 +283,6 @@
   let copyBtn = null;
   let altBtn = null;
   let altAction = 'translate'; // translate | readOriginal
-  let readBtn = null;      // 朗读译文（#10）
   let tagEl = null;
   let timer = null;
   let seq = 0;
@@ -561,15 +551,6 @@
     copyBtn.textContent = T.t('panel.copy');
     copyBtn.addEventListener('click', onCopy);
 
-    /* 朗读（#10）。只保留朗读译文按钮，用喇叭图标表达动作。
-       没出结果之前不显示（那时没有译文可读）。 */
-    readBtn = document.createElement('button');
-    readBtn.className = 'btn icon-btn';
-    readBtn.type = 'button';
-    readBtn.style.display = 'none';
-    readBtn.addEventListener('click', onRead);
-    paintRead();
-
     const closeBtn = document.createElement('button');
     closeBtn.className = 'btn';
     closeBtn.type = 'button';
@@ -577,7 +558,6 @@
     closeBtn.addEventListener('click', close);
 
     tools.appendChild(altBtn);
-    tools.appendChild(readBtn);
     tools.appendChild(copyBtn);
     tools.appendChild(closeBtn);
     head.appendChild(tag);
@@ -773,44 +753,20 @@
     setTimeout(finish, 3000);
   }
 
-  /* 朗读译文的语言用**响应里的目标语言**，没有响应字段时回退当前设置。 */
-  function readLang() {
-    return lastTarget || cfg.targetLang;
-  }
-
-  /* 朗读原文时重新做一次语言判定。这个按钮只会在「译成中文」这个
-     反向出口上出现，所以正常情况下一定能判出中文；判不出时仍回退首选语言。 */
+  /* 朗读原文时重新做一次语言判定；判不出时回退首选语言。 */
   function originalReadLang() {
     const detected = LANGUTIL.detect(lastText);
     return detected === 'unknown' ? cfg.preferredLang : detected;
   }
 
-  function setReadIcon(stop) {
-    if (!readBtn) return;
-    const ns = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(ns, 'svg');
-    svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('aria-hidden', 'true');
-
-    const path = document.createElementNS(ns, 'path');
-    path.setAttribute(
-      'd',
-      stop
-        ? 'M6 5h4v14H6V5zm8 0h4v14h-4V5z'
-        : 'M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.1-3.8v7.6a4.5 4.5 0 0 0 2.1-3.8zm0-7.5v2.1A7 7 0 0 1 20 12a7 7 0 0 1-3.5 6.4v2.1A9 9 0 0 0 22 12a9 9 0 0 0-5.5-7.5z'
-    );
-    svg.appendChild(path);
-    readBtn.textContent = '';
-    readBtn.appendChild(svg);
-    const label = stop ? T.t('panel.stopRead') : T.t('panel.readOut');
-    readBtn.setAttribute('title', label);
-    readBtn.setAttribute('aria-label', label);
-    readBtn.setAttribute('aria-pressed', stop ? 'true' : 'false');
-  }
-
   function paintRead() {
+    if (!altBtn || altAction !== 'readOriginal') return;
     const on = !!(speaker && speaker.isSpeaking());
-    setReadIcon(on);
+    const label = on ? T.t('panel.stopRead') : T.t('panel.readOriginal');
+    altBtn.textContent = label;
+    altBtn.setAttribute('title', label);
+    altBtn.setAttribute('aria-label', label);
+    altBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
 
   /* 一行即时提示（没有语音包 / 朗读失败）。
@@ -852,8 +808,7 @@
     paintRead();
   }
 
-  /* 共同的朗读启动路径：译文和原文都要等语音列表、选音、处理无语音包，
-     只是在文本与语言上不同。 */
+  /* 原文朗读：等待语音列表、选音，并处理无语音包的情况。 */
   function startRead(text, lang) {
     if (!SPEAK) return;               // speak.js 没加载（不该发生，check.js 会挡）
     const synth = window.speechSynthesis;
@@ -891,14 +846,6 @@
 
   /* 点一下朗读 / 再点一下停止 —— 同一个按钮两种动作，与「复制」不一样
      （复制是一次性的，没有「停止复制」这回事）。 */
-  function onRead() {
-    if (speaker && speaker.isSpeaking()) {
-      stopRead();
-      return;
-    }
-    startRead(lastResult, readLang());
-  }
-
   function onReadOriginal() {
     if (speaker && speaker.isSpeaking()) {
       stopRead();
@@ -1047,11 +994,7 @@
           altBtn.setAttribute('aria-label', altLabel);
           altBtn.style.display = '';
         }
-        // 有译文了，朗读按钮才出来（#10）—— 没结果之前它不显示
-        if (readBtn && lastResult) {
-          readBtn.style.display = '';
-          paintRead();
-        }
+        paintRead();
 
         setBody(res.text, 'text');
         place();
@@ -1105,7 +1048,6 @@
     altAction = 'translate';
     curGap = GAP;
     if (altBtn) altBtn.style.display = 'none';
-    if (readBtn) readBtn.style.display = 'none';   // 没有译文可读（#10）
     setBody(msg, 'err');
     if (action) addAction(action);
 
@@ -1129,8 +1071,6 @@
     build();
     // 没有可复制的东西时，那个按钮点了也不会有反应 —— 直接收掉
     if (copyBtn) copyBtn.style.display = 'none';
-    // 同理：没有译文可读，朗读按钮也不该在（#10）
-    if (readBtn) readBtn.style.display = 'none';
     setBody(msg, 'muted');
     if (action) addAction(action);
     panel.style.display = 'block';

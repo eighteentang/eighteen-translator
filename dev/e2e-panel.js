@@ -1034,21 +1034,22 @@ async function main() {
 
          这一段的 aria-label 在两种界面语言下都认 —— 别把断言钉死在中文上
          （上面的用例切过界面语言，而且它本来就是可切的）。 */
-      const READ_OUT = ['朗读译文', 'Read translation'];
+      const READ_ORIGINAL = ['朗读原文', 'Read original'];
       const STOP_READ = ['停止', 'Stop'];
 
-      const readState = () => page.evaluate(([out, stop]) => {
+      const readState = () => page.evaluate(([original, stop]) => {
         const el = document.getElementById('wt-translate-host');
         const sr = el && el.shadowRoot;
         const btns = sr ? Array.from(sr.querySelectorAll('.tools .btn')) : [];
         const labels = btns.map((b) => b.textContent);
-        const speak = sr && sr.querySelector('.tools .icon-btn');
+        const speak = btns.find((b) => original.concat(stop).includes(b.getAttribute('aria-label')));
         const hint = sr ? sr.querySelector('.speak-hint') : null;
         const p = sr ? sr.querySelector('.panel') : null;
         return {
           labels: labels,
           hasSpeak: !!speak,
-          hasIcon: !!(speak && speak.querySelector('svg')),
+          hasTranslationRead: btns.some((b) => ['朗读译文', 'Read translation'].includes(b.getAttribute('aria-label')))
+            || !!(sr && sr.querySelector('.tools .icon-btn')),
           hasVisibleText: !!(speak && speak.textContent.trim()),
           aria: speak ? speak.getAttribute('aria-label') : '',
           speaking: !!speak && stop.indexOf(speak.getAttribute('aria-label')) >= 0,
@@ -1056,18 +1057,18 @@ async function main() {
           voices: window.speechSynthesis ? window.speechSynthesis.getVoices().length : -1,
           text: p ? (p.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 60) : '',
         };
-      }, [READ_OUT, STOP_READ]);
+      }, [READ_ORIGINAL, STOP_READ]);
 
       const readUi = await readState();
-      ok('浮层工具条里只有一个喇叭形朗读按钮，且没有可见文字（#10）',
-        readUi.hasSpeak && readUi.hasIcon && !readUi.hasVisibleText
-          && READ_OUT.indexOf(readUi.aria) >= 0,
+      ok('浮层保留「朗读原文」文字按钮，移除译文朗读图标（#10）',
+        readUi.hasSpeak && !readUi.hasTranslationRead && readUi.hasVisibleText
+          && READ_ORIGINAL.indexOf(readUi.aria) >= 0,
         JSON.stringify(readUi));
 
       const speakBox = () => page.evaluate(() => {
         const el = document.getElementById('wt-translate-host');
         const sr = el && el.shadowRoot;
-        const target = sr && sr.querySelector('.tools .icon-btn');
+        const target = sr && sr.querySelector('.tools .btn[aria-pressed]');
         if (!target) return null;
         const r = target.getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
@@ -1077,10 +1078,11 @@ async function main() {
          浮层在 Shadow DOM 里、由 content script 的隔离世界创建，
          实测 `element.click()` 派发的事件到不了那边的监听器（点了没反应，
          而且不报错）—— 与浮层上其它按钮的验法保持一致（见上面的 altBtn）。 */
+      const beforeEnglishRead = await worker.evaluate(() => globalThis.__wtCalls.length);
       const readBox = await speakBox();
       if (readBox) await page.mouse.click(readBox.x, readBox.y);
 
-      /* 轮询而不是等固定时长：一句「E2E 译文」不到一秒就读完了，
+      /* 轮询而不是等固定时长：短句可能不到一秒就读完了，
          等 3.6 秒再去看，那时早就回到初始态了（**这是踩过的坑**）。
          所以要抓的是「**某一刻**进入过朗读态或出现过提示」。 */
       let readSeen = null;
@@ -1101,37 +1103,20 @@ async function main() {
         !!readSeen && readSeen.text.indexOf('E2E') >= 0,
         JSON.stringify(readSeen && readSeen.text));
 
-      /* 无语音包的那条路（#10 关闭条件里明确要求的一条）：
-         把目标语言换成一个**这台机器几乎不可能装了语音包**的语言（泰文），
-         再读一次 —— 必须给出一句能看懂的话，而不是点了没反应。
-         ⚠️ 万一本机真有泰文语音，就按「进入朗读态」放行，别把一个真机差异报成 bug。 */
-      const hasThai = await page.evaluate(() => {
-        const s = window.speechSynthesis;
-        return !!s && s.getVoices().some((v) => /^th/i.test(v.lang));
-      });
-      await worker.evaluate(() => chrome.storage.local.set({ targetLang: 'th' }));
-      await sleep(400);
-      await selectAndMouseUp(page, 'p1');
-      await sleep(1600);
-      const thBox = await speakBox();
-      if (thBox) await page.mouse.click(thBox.x, thBox.y);
-      await sleep(1000);
-      const thState = await readState();
-      ok('没有这门语言的语音包时给出可读提示（不是静默失败）（#10）',
-        hasThai || thState.speaking || /语音包|voice/i.test(thState.hint),
-        JSON.stringify({ hasThai: hasThai, hint: thState.hint, speaking: thState.speaking }));
-      ok('朗读提示出现时，译文仍然在面板里（#10）',
-        hasThai || thState.text.indexOf('E2E') >= 0, JSON.stringify(thState.text));
+      const afterEnglishRead = await worker.evaluate(() => globalThis.__wtCalls.length);
+      ok('英文原文朗读不会发送新的翻译请求（#10）',
+        afterEnglishRead === beforeEnglishRead,
+        `请求数 ${beforeEnglishRead} → ${afterEnglishRead}`);
 
-      // 收尾：把朗读停掉、语言改回去，别影响后面的用例
-      const stopBox = await speakBox();
-      if (stopBox) await page.mouse.click(stopBox.x, stopBox.y);
+      // 如果仍在播放，点击同一个文字按钮停止。
+      if ((await readState()).speaking) {
+        const stopBox = await speakBox();
+        if (stopBox) await page.mouse.click(stopBox.x, stopBox.y);
+      }
       await sleep(400);
-      await worker.evaluate(() => chrome.storage.local.set({ targetLang: 'zh' }));
-      await sleep(300);
       const readBack = await readState();
-      ok('朗读按钮回到初始态（不会卡在「停止」）（#10）',
-        !readBack.speaking, JSON.stringify(readBack.labels));
+      ok('朗读结束或停止后，文字按钮恢复「朗读原文」（#10）',
+        !readBack.speaking && READ_ORIGINAL.includes(readBack.aria), JSON.stringify(readBack.labels));
 
       /* 中文选区的「译成中文」是把原文翻回原语言，没有实际价值。
          #10 的最新要求把这个出口改成「朗读原文」，并且不能再发翻译请求。 */
@@ -1145,8 +1130,7 @@ async function main() {
         const el = document.getElementById('wt-translate-host');
         const sr = el && el.shadowRoot;
         const btn = sr && Array.from(sr.querySelectorAll('.tools .btn'))
-          .find((b) => !b.classList.contains('icon-btn')
-            && !/复制|Copy|关闭|Close/.test(b.textContent));
+          .find((b) => ['朗读原文', 'Read original'].includes(b.textContent));
         return btn ? {
           text: btn.textContent,
           label: btn.getAttribute('aria-label'),
@@ -1163,18 +1147,26 @@ async function main() {
         JSON.stringify(zhAlt));
       const beforeOriginalRead = await worker.evaluate(() => globalThis.__wtCalls.length);
       if (zhAlt) await page.mouse.click(zhAlt.box.x, zhAlt.box.y);
-      await sleep(900);
+      let originalReadState = null;
+      for (let i = 0; i < 14 && !originalReadState; i++) {
+        await sleep(300);
+        const s = await readState();
+        if (s.speaking || s.hint) originalReadState = s;
+      }
       const afterOriginalRead = await worker.evaluate(() => globalThis.__wtCalls.length);
-      const originalReadState = await readState();
       ok('点击「朗读原文」不再发起反向翻译请求，并且有朗读反馈（#10）',
         !!zhAlt && afterOriginalRead === beforeOriginalRead
-          && (originalReadState.speaking || !!originalReadState.hint),
+          && !!originalReadState,
         JSON.stringify({ calls: beforeOriginalRead + ' → ' + afterOriginalRead, state: originalReadState }));
-      if (originalReadState.speaking) {
+      if (originalReadState && originalReadState.speaking) {
         const stopOriginal = await speakBox();
         if (stopOriginal) await page.mouse.click(stopOriginal.x, stopOriginal.y);
         await sleep(300);
       }
+      const originalStopped = await readState();
+      ok('中文原文朗读可用同一按钮停止，并恢复可再次播放的状态（#10）',
+        !originalStopped.speaking && READ_ORIGINAL.includes(originalStopped.aria),
+        JSON.stringify(originalStopped));
 
 
       /* ---- 排除站点（#29）----

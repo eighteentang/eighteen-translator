@@ -9,7 +9,7 @@ A Chrome / Edge extension (Manifest V3). Select text on any page — a small pan
 - All logic runs on your machine. Nothing goes through a server of ours — the only network calls are to the translation engine **you** configure.
 - The panel is wrapped in Shadow DOM, so site CSS can't distort it.
 - **11 languages** in any direction (Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Spanish, Russian, Arabic, Thai). Direction is detected locally.
-- **Read the translation aloud** from the panel — the browser's built-in speech synthesis, offline.
+- **Read the original Chinese or English text aloud** from the panel — the browser's built-in speech synthesis, offline. Click again to stop.
 - Settings never leave the device and are not synced.
 - MIT licensed.
 
