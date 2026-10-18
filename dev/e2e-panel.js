@@ -135,6 +135,13 @@ async function main() {
   };
 
   try {
+    // Existing own-key scenarios remain deterministic when new installations
+    // default to the deployed free service. The free flow is exercised below
+    // with a mock transport, so this suite never spends real provider credit.
+    const bootstrapTarget = await browser.waitForTarget((t) =>
+      t.type() === 'service_worker' && /^chrome-extension:/.test(t.url()));
+    const bootstrapWorker = await bootstrapTarget.worker();
+    await bootstrapWorker.evaluate(() => chrome.storage.local.set({ quotaMode: 'own' }));
     const page = await browser.newPage();
     const logs = [];
     page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));

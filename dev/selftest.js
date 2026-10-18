@@ -187,9 +187,11 @@ function check(name, cond, extra) {
   check('DeepSeek \u76ee\u6807\u4e3a\u82f1\u6587\u65f6\u63d0\u793a\u8bcd\u6b63\u786e', /English/.test(captured.body.messages[0].content));
 
   /* 8. 共享配置：quotaMode 默认值（config.js 是单一真源） */
-  check('DEFAULTS.quotaMode \u9ed8\u8ba4\u4e3a own', CFG.DEFAULTS.quotaMode === 'own', String(CFG.DEFAULTS.quotaMode));
+  const configuredPlatformBase = CFG.PLATFORM.baseUrl;
+  check('默认服务模式与平台地址配置一致', CFG.DEFAULTS.quotaMode === (configuredPlatformBase ? 'free' : 'own'), String(CFG.DEFAULTS.quotaMode));
 
   /* 9. 平台免费额度：预留接缝，应明确报「尚未开放」且不发任何请求 */
+  CFG.PLATFORM.baseUrl = '';
   override = { quotaMode: 'free', engine: 'deepseek', targetLang: 'zh', deepseekKey: 'sk-test' };
   mockFetch = async () => { throw new Error('\u4e0d\u5e94\u53d1\u8d77\u8bf7\u6c42'); };
   r = await call('hello');
@@ -200,6 +202,7 @@ function check(name, cond, extra) {
   mockFetch = async () => { throw new Error('\u4e0d\u5e94\u53d1\u8d77\u8bf7\u6c42'); };
   r = await call('hello');
   check('quotaMode=free \u4f18\u5148\u4e8e\u5f15\u64ce\u9009\u62e9', r.ok === false && /\u5c1a\u672a\u5f00\u653e/.test(r.error), r.error);
+  CFG.PLATFORM.baseUrl = configuredPlatformBase;
 
   /* 11. 百度已移除：配置里不应再残留相关键 */
   check('\u914d\u7f6e\u91cc\u5df2\u4e0d\u542b\u767e\u5ea6\u76f8\u5173\u952e', !('baiduAppId' in CFG.DEFAULTS) && !('baiduKey' in CFG.DEFAULTS), Object.keys(CFG.DEFAULTS).join(','));
