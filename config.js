@@ -17,9 +17,9 @@
 (function (root) {
   'use strict';
 
-  // Set to the deployed HTTPS service origin before enabling free translations.
+  // HTTPS service origin for free translations.
   // An empty value keeps the existing self-supplied-key installation usable.
-  const PLATFORM = { baseUrl: '', dailyLimit: 30 };
+  const PLATFORM = { baseUrl: 'https://eighteen-translator-api.eighteentang.workers.dev', dailyLimit: 30 };
 
   const DEFAULTS = {
     enabled: true,

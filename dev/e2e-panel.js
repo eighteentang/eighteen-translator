@@ -141,6 +141,12 @@ async function main() {
     const bootstrapTarget = await browser.waitForTarget((t) =>
       t.type() === 'service_worker' && /^chrome-extension:/.test(t.url()));
     const bootstrapWorker = await bootstrapTarget.worker();
+    const initialMode = await bootstrapWorker.evaluate(async () => {
+      const defaults = globalThis.WT_CONFIG.DEFAULTS;
+      const cfg = await chrome.storage.local.get(defaults);
+      return { actual: cfg.quotaMode, expected: defaults.quotaMode };
+    });
+    ok('Fresh installation uses the configured default mode', initialMode.actual === initialMode.expected, initialMode.actual);
     await bootstrapWorker.evaluate(() => chrome.storage.local.set({ quotaMode: 'own' }));
     const page = await browser.newPage();
     const logs = [];

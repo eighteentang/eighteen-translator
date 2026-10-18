@@ -15,11 +15,11 @@ A Chrome / Edge extension (Manifest V3). Select text on any page — a small pan
 
 ## Free allowance and optional sponsorship
 
-The planned free service provides **30 translations per browser installation per day**, resetting at midnight Beijing time (UTC+8). Successful new translations use the allowance; local cache hits and original-text read-aloud do not. If an upstream request completes after you close the panel, it can still use one translation.
+The free service provides **30 translations per browser installation per day**, resetting at midnight Beijing time (UTC+8). Successful new translations use the allowance; local cache hits and original-text read-aloud do not. If an upstream request completes after you close the panel, it can still use one translation.
 
 No account or paid membership is required. When the allowance runs out, wait until the next day or use your own DeepSeek API key. Your own-key requests go directly to your selected engine and do not use the platform allowance. Reinstalling the extension or changing browser profiles creates a separate installation identifier; this is not a per-person identity system.
 
-**Availability:** the client integration is prepared, but the free option stays disabled until a real service origin is configured and deployed. The existing own-key mode remains usable during preparation.
+**Availability:** free mode is enabled by default for new installations. Existing saved mode settings are preserved; switch modes in settings. Service availability depends on your network's access to the project service.
 
 Sponsorship is voluntary and does not unlock features or change the daily allowance. Payment QR codes will be added when supplied by the maintainer.
 
@@ -32,7 +32,7 @@ Sponsorship is voluntary and does not unlock features or change the daily allowa
 3. Click **Load unpacked**
 4. Select this project folder
 
-> ⚠️ **You need to configure an engine on first run.** The default engine is DeepSeek and needs an API key. If you'd rather not sign up for one, switch to the free Google endpoint.
+> **New installations can translate immediately with the free allowance.** To use your own key, select own-key mode in settings and configure DeepSeek. Google is also available where its public endpoint is reachable.
 > The settings page opens itself once on first install (not on updates).
 
 > After changing code, click the reload button on the extension card, then reload the page.
@@ -59,7 +59,7 @@ Sponsorship is voluntary and does not unlock features or change the daily allowa
 > | Google free endpoint | **Unusable** — 429 through a proxy; a real Chrome UA gets an anti-abuse block page; other params return 403 |
 > | DeepSeek | Reachable — HTTP 401 without a key, 0.65 s |
 >
-> Hence **DeepSeek is the default**. The Google option is kept: it works on networks where the endpoint is reachable and the exit IP isn't rate-limited.
+> **DeepSeek is the default engine within own-key mode**. The Google option is kept: it works on networks where the endpoint is reachable and the exit IP isn't rate-limited.
 
 ### Google endpoint: where it works
 
@@ -73,11 +73,11 @@ This is an honest labelling, not "temporarily broken". It depends on your networ
 
 The URL, parameters, response parsing, error handling and timeouts were all checked against the endpoint's actual behaviour. A 429 on one machine says something about that machine's exit IP, not about the engine.
 
-### DeepSeek (default)
+### DeepSeek (own-key mode)
 
 1. Sign up at the DeepSeek open platform
 2. Create an API key under **API keys** (shown once)
-3. Paste it into the settings page
+3. Select own-key mode in settings and paste the key
 
 Thinking mode is explicitly disabled in code — it defaults to on with `high` effort, which only slows translation down.
 
@@ -118,9 +118,9 @@ Write just the domain — `example.com` also covers all its subdomains. Pasting 
 
 ## Privacy
 
-Everything runs locally. The extension processes only the text you select, sends it to the engine you chose (DeepSeek with your own key, or the Google endpoint), and stores settings, key, counters and cache in `chrome.storage.local` — **in plain text, never uploaded**. Uninstalling removes all of it.
+Settings, your key, local counters and cache stay in `chrome.storage.local` in plain text. Own-key mode sends selected text directly to your chosen engine. Free mode sends selected text, target language and a random installation identifier to the project service, which forwards text to DeepSeek and keeps short-term quota records. Uninstalling removes the extension's local data.
 
-There is no account system, no analytics, no telemetry, no remote code, and nothing is sold or shared.
+There is no account system, analytics, telemetry or remote code. Translation requests are processed by the services described in the privacy policy; data is not sold.
 
 **Full policy: [eighteentang.github.io/eighteen-translator/privacy](https://eighteentang.github.io/eighteen-translator/privacy)** (also [in this repo](docs/privacy.html))
 
@@ -130,6 +130,7 @@ There is no account system, no analytics, no telemetry, no remote code, and noth
 |---|---|
 | `storage` | Save settings, key, counters, cache locally |
 | `https://api.deepseek.com/*`, `https://translate.googleapis.com/*` | Send selected text to the chosen engine |
+| `https://eighteen-translator-api.eighteentang.workers.dev/*` | Free translations and daily allowance status |
 | Content script on `<all_urls>` | Select-to-translate has to work on the page you're reading |
 
 No other permissions are requested.
@@ -188,7 +189,6 @@ All deliberately deferred, not rejected — see the [issue list](https://github.
 - Vocabulary book / translation history
 - Full accessibility pass, settings import/export, automatic engine fallback
 - Touch support
-- Hosted quota (extension pays, you don't configure credentials) — designed, not started
 
 **Removed**: the Baidu engine (since v0.3.0), including its MD5 signature implementation. Recoverable from git history if ever needed.
 

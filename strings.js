@@ -179,7 +179,7 @@
       'opt.title': '划词翻译 · 设置',
       'opt.h1': '划词翻译',
       'opt.sub': '在任意网页选中文字，松开鼠标即可看到译文。',
-      'opt.banner': '首次使用请先选好引擎：DeepSeek 需要填 API Key，Google 免费接口无需任何配置。',
+      'opt.banner': '可选择每天 30 次免费翻译，或使用自己的 DeepSeek API Key；Google 免费接口的可用性取决于网络。',
 
       'opt.enabled': '启用划词翻译',
       'opt.enabledDesc': '关闭后所有网页都不再触发',
@@ -499,8 +499,8 @@
       'opt.title': 'Eighteen Translator · Settings',
       'opt.h1': 'Eighteen Translator',
       'opt.sub': 'Select text on any page and release the mouse to see the translation.',
-      'opt.banner': 'Pick an engine first: DeepSeek needs an API key, '
-        + "while Google's free endpoint needs no setup at all.",
+      'opt.banner': 'Choose 30 free translations per day or use your own DeepSeek API key. '
+        + "Google's free endpoint depends on your network.",
 
       'opt.enabled': 'Enable select-to-translate',
       'opt.enabledDesc': 'When off, nothing triggers on any page',

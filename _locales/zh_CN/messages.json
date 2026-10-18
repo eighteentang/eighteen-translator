@@ -4,7 +4,7 @@
     "description": "扩展名。会显示在安装对话框、chrome://extensions 与商店页。⚠️ 上架后改名要重新审核；另注意商店对名字另有 45 字符的硬上限（manifest 本身允许 75）。"
   },
   "extDesc": {
-    "message": "选中网页文字即可看到译文。支持 DeepSeek 与 Google 两种引擎，需自行配置 API Key。",
+    "message": "选中网页文字即可看到译文。每天免费 30 次，也可使用自己的 DeepSeek API Key；支持 Google 引擎。",
     "description": "manifest 的 description，Chrome 上限 132 字符。"
   },
   "extActionTitle": {

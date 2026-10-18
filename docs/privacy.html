@@ -113,7 +113,7 @@
 <table>
   <tr><th>Engine</th><th>Destination</th><th>Notes</th></tr>
   <tr>
-    <td><strong>DeepSeek</strong> (default)</td>
+    <td><strong>DeepSeek</strong> (own-key default)</td>
     <td><code>https://api.deepseek.com</code></td>
     <td>Uses the API key you supply. DeepSeek's own privacy policy governs their handling of the request.</td>
   </tr>
@@ -123,7 +123,7 @@
     <td>An unofficial public endpoint with no account or key. Not reachable from mainland China networks and often rate-limited on shared IPs.</td>
   </tr>
 </table>
-<p>When free mode is enabled, the extension also contacts the deployed project service declared in <code>manifest.json</code> under <code>host_permissions</code>. The service receives the selected text, target language and installation identifier, and forwards the text to DeepSeek. No page URL, browsing history or user-supplied API key is included. The service is not enabled in builds without a configured service origin.</p>
+<p>Free mode contacts <code>https://eighteen-translator-api.eighteentang.workers.dev</code>, declared in <code>manifest.json</code> under <code>host_permissions</code>. The service receives the selected text, target language and installation identifier, and forwards the text to DeepSeek. No page URL, browsing history or user-supplied API key is included.</p>
 <p>The project service does not persist selections or translations. It stores short-lived daily quota records linked to a hashed installation identifier. Cloudflare processes connection metadata such as IP addresses; the service uses transient network metadata for request handling without storing the original IP. Cloudflare and DeepSeek have their own infrastructure, retention and privacy policies.</p>
 
 <h2>4. What is stored on your device</h2>
@@ -213,7 +213,7 @@
 <table lang="zh-CN">
   <tr><th>引擎</th><th>目标域名</th><th>说明</th></tr>
   <tr>
-    <td><strong>DeepSeek</strong>（默认）</td>
+    <td><strong>DeepSeek</strong>（自带 Key 模式默认）</td>
     <td><code>https://api.deepseek.com</code></td>
     <td>使用你提供的 API Key。请求在 DeepSeek 侧的留存与处理，适用 DeepSeek 自己的隐私政策。</td>
   </tr>
@@ -223,7 +223,7 @@
     <td>非官方公共端点，无需账号与 Key。中国大陆网络不可达，共享出口 IP 常被限流（返回 429）。</td>
   </tr>
 </table>
-<p lang="zh-CN">免费模式开放后，扩展还会访问 <code>manifest.json</code> 的 <code>host_permissions</code> 中声明的项目服务地址。后台接收选中文字、目标语言和安装标识，并把文字转发给 DeepSeek；不包含页面网址、浏览历史或用户自带的 API Key。没有配置服务地址的版本不会开放免费服务。</p>
+<p lang="zh-CN">免费模式访问 <code>https://eighteen-translator-api.eighteentang.workers.dev</code>，该地址已在 <code>manifest.json</code> 的 <code>host_permissions</code> 中声明。后台接收选中文字、目标语言和安装标识，并把文字转发给 DeepSeek；不包含页面网址、浏览历史或用户自带的 API Key。</p>
 <p lang="zh-CN">项目服务不保存原文或译文，只保存关联到安装标识散列值的短期每日额度记录。Cloudflare 会处理 IP 等连接信息；服务临时使用网络信息处理请求，不保存原始 IP。Cloudflare 和 DeepSeek 各自有独立的基础设施、留存规则与隐私政策。</p>
 
 <h2 lang="zh-CN">4. 本机存了什么</h2>
