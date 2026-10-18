@@ -21,7 +21,11 @@ No account or paid membership is required. When the allowance runs out, wait unt
 
 **Availability:** free mode is enabled by default for new installations. Existing saved mode settings are preserved; switch modes in settings. Service availability depends on your network's access to the project service.
 
-Sponsorship is voluntary and does not unlock features or change the daily allowance. Payment QR codes will be added when supplied by the maintainer.
+If you find this extension useful, you can support it via WeChat Pay or Alipay. Sponsorship is voluntary and does not unlock features or change the daily allowance.
+
+| WeChat Pay | Alipay |
+|:---:|:---:|
+| <img src="docs/sponsor/wechat.png" alt="WeChat Pay sponsorship QR code" width="240"> | <img src="docs/sponsor/alipay.png" alt="Alipay sponsorship QR code" width="240"> |
 
 ---
 
