@@ -39,6 +39,7 @@
       // ---- 引擎名（浮层右上角的标签）----
       'engine.google': 'Google 翻译',
       'engine.deepseek': 'DeepSeek',
+      'engine.platform': '免费翻译',
       'engine.fallback': '翻译',
       // 句子中间的说法（「X 偶尔需要几秒」）—— 和标签上那个「翻译」不是一回事
       'engine.any': '引擎',
@@ -90,6 +91,16 @@
       'err.dsError': 'DeepSeek 报错：{msg}',
       'err.dsEmpty': 'DeepSeek 返回内容为空',
       'err.platform': '平台免费额度正在测试中，尚未开放。请到设置页改用「使用自己的 API Key」',
+      'err.platformUnavailable': '免费翻译服务暂不可用，请稍后重试，或到设置页使用自己的 DeepSeek API Key',
+      'err.platformQuota': '今天的 30 次免费翻译已用完，北京时间零点恢复。你也可以到设置页使用自己的 DeepSeek API Key',
+      'err.platformRate': '操作过于频繁，请稍后再试',
+      'quota.remaining': '免费剩余 {n} / {limit} 次',
+      'quota.unknown': '免费剩余 — / {limit} 次',
+      'quota.label': '免费额度',
+      'quota.remainingLabel': '免费剩余次数',
+      'quota.resetHint': '北京时间零点重置',
+      'quota.amount': '{n} / {limit}',
+      'quota.description': '按浏览器安装标识计次，北京时间零点重置；缓存命中不扣次数',
       'err.cancelled': '这次翻译已被取消',
       'err.unknown': '未知错误',
       'err.timeout': '请求超时，请检查网络或代理',
@@ -183,10 +194,12 @@
       'opt.badgeDefault': '默认',
       'opt.ownKeyHint': '需自行申请并配置凭据',
       'opt.free': '平台免费额度',
-      'opt.badgeTesting': '测试中',
-      'opt.freeHint': '无需任何配置，装上即用 —— 尚未开放',
-      'opt.freeNote': '平台免费额度由本扩展的服务端代付，目前仍在测试、暂未开放。'
-        + '在此之前请使用自己的 API Key。',
+      'opt.badgeTesting': '准备中',
+      'opt.freeHint': '每个浏览器每天 30 次，无需填写 Key；服务准备中',
+      'opt.freeReadyHint': '每个浏览器每天 30 次，无需填写 API Key',
+      'opt.freeReadyBadge': '每天 30 次',
+      'opt.freeNote': '免费翻译由平台提供，每个浏览器安装每天 30 次，北京时间零点恢复。'
+        + '用完后可等待次日恢复，或使用自己的 DeepSeek API Key。赞助自愿，不影响额度。',
 
       'opt.secEngine': '翻译引擎',
       'opt.badgeRecommended': '推荐',
@@ -355,6 +368,7 @@
 
       'engine.google': 'Google Translate',
       'engine.deepseek': 'DeepSeek',
+      'engine.platform': 'Free translation',
       'engine.fallback': 'Translation',
       'engine.any': 'the engine',
 
@@ -403,6 +417,16 @@
       'err.dsParse': "DeepSeek returned something we couldn't parse (HTTP {status})",
       'err.dsError': 'DeepSeek error: {msg}',
       'err.dsEmpty': 'DeepSeek returned an empty result',
+      'err.platformUnavailable': 'Free translation is temporarily unavailable. Try again later or use your own DeepSeek API key in settings.',
+      'err.platformQuota': 'All 30 free translations have been used today. They reset at midnight Beijing time. You can also use your own DeepSeek API key in settings.',
+      'err.platformRate': 'Too many requests. Please try again shortly.',
+      'quota.remaining': 'Free: {n} / {limit} remaining',
+      'quota.unknown': 'Free: — / {limit} remaining',
+      'quota.label': 'Free allowance',
+      'quota.remainingLabel': 'Free translations left',
+      'quota.resetHint': 'Resets at midnight Beijing time',
+      'quota.amount': '{n} / {limit}',
+      'quota.description': 'Per browser installation; resets at midnight Beijing time. Cache hits do not use the allowance.',
       'err.platform': 'The free platform quota is still in testing and not open yet. '
         + 'Please switch to "Use your own API key" in the settings.',
       'err.cancelled': 'This translation was cancelled',
@@ -492,9 +516,11 @@
       'opt.ownKeyHint': 'You apply for the credentials and pay for usage',
       'opt.free': 'Free platform quota',
       'opt.badgeTesting': 'in testing',
-      'opt.freeHint': 'No setup at all — not open yet',
-      'opt.freeNote': 'The free quota is paid for by this extension’s server and is still in '
-        + 'testing. Until then, please use your own API key.',
+      'opt.freeHint': '30 translations per browser per day, no API key needed; service in preparation',
+      'opt.freeReadyHint': '30 translations per browser per day, no API key needed',
+      'opt.freeReadyBadge': '30 per day',
+      'opt.freeNote': 'The platform provides 30 free translations per browser installation per day, resetting at midnight Beijing time. '
+        + 'When used up, wait until the next day or use your own DeepSeek API key. Sponsorship is optional and does not change the allowance.',
 
       'opt.secEngine': 'Translation engine',
       'opt.badgeRecommended': 'recommended',

@@ -17,6 +17,10 @@
 (function (root) {
   'use strict';
 
+  // Set to the deployed HTTPS service origin before enabling free translations.
+  // An empty value keeps the existing self-supplied-key installation usable.
+  const PLATFORM = { baseUrl: '', dailyLimit: 30 };
+
   const DEFAULTS = {
     enabled: true,
 
@@ -30,13 +34,8 @@
        ⚠️ 判断只在页面加载时做一次 —— 改完要刷新已打开的标签页（设置页会提示）。 */
     excludeSites: '',
 
-    /* 额度来源：
-       'own'  = 使用用户自己的 API Key（当前唯一可用，也是默认值）
-       'free' = 平台免费额度（测试中）
-
-       说明：'free' 的 UI 已置灰不可选，后台的分发分支（translateViaPlatform）
-       是预留接缝。将来接入托管后端时，只需实现那一个函数，其余文件不用动。 */
-    quotaMode: 'own',
+    /* 已有配置保持原模式；服务部署后，新安装可直接使用免费额度。 */
+    quotaMode: PLATFORM.baseUrl ? 'free' : 'own',
 
     engine: 'deepseek', // deepseek | google
 
@@ -194,7 +193,7 @@
   }
 
   const api = {
-    DEFAULTS, todayKey,
+    DEFAULTS, PLATFORM, todayKey,
     FONT_STEPS, WIDTH_STEPS, RATE_STEPS, stepPx,
     /* 朗读语速：档位名 → 倍率。与 stepPx 同一个「认不出就退回中间档」的策略。 */
     stepRate: (id) => stepOf(RATE_STEPS, id, 'rate')

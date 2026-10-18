@@ -6,12 +6,22 @@
 
 A Chrome / Edge extension (Manifest V3). Select text on any page — a small panel shows the translation. No build step, no dependencies, no account.
 
-- All logic runs on your machine. Nothing goes through a server of ours — the only network calls are to the translation engine **you** configure.
+- With your own API key, selected text goes directly to your chosen engine. The optional free mode routes it through the project's translation service; see the [privacy policy](https://eighteentang.github.io/eighteen-translator/privacy).
 - The panel is wrapped in Shadow DOM, so site CSS can't distort it.
 - **11 languages** in any direction (Chinese, Traditional Chinese, English, Japanese, Korean, French, German, Spanish, Russian, Arabic, Thai). Direction is detected locally.
 - **Read the original Chinese or English text aloud** from the panel — the browser's built-in speech synthesis, offline. Click again to stop.
 - Settings never leave the device and are not synced.
 - MIT licensed.
+
+## Free allowance and optional sponsorship
+
+The planned free service provides **30 translations per browser installation per day**, resetting at midnight Beijing time (UTC+8). Successful new translations use the allowance; local cache hits and original-text read-aloud do not. If an upstream request completes after you close the panel, it can still use one translation.
+
+No account or paid membership is required. When the allowance runs out, wait until the next day or use your own DeepSeek API key. Your own-key requests go directly to your selected engine and do not use the platform allowance. Reinstalling the extension or changing browser profiles creates a separate installation identifier; this is not a per-person identity system.
+
+**Availability:** the client integration is prepared, but the free option stays disabled until a real service origin is configured and deployed. The existing own-key mode remains usable during preparation.
+
+Sponsorship is voluntary and does not unlock features or change the daily allowance. Payment QR codes will be added when supplied by the maintainer.
 
 ---
 

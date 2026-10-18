@@ -33,12 +33,13 @@
   /* 引擎名。用一张显式的表而不是 `'engine.' + engine`：
      将来某个引擎改名 / 下线时，配置里可能还留着旧值，
      这时候要的是「退回一个通用名字」，不是把 'engine.xyz' 这种键名显示给用户。 */
-  const ENGINE_KEYS = { google: 'engine.google', deepseek: 'engine.deepseek' };
+  const ENGINE_KEYS = { google: 'engine.google', deepseek: 'engine.deepseek', platform: 'engine.platform' };
   /* 认不出的引擎退回 fallbackKey 指定的说法：
      浮层右上角的标签用 'engine.fallback'（「翻译」），
      句子中间的「X 偶尔需要几秒」用 'engine.any'（「引擎」）——
      同一个「认不出」在两种句式里要的其实是两个词。 */
   function engineLabel(engine, fallbackKey) {
+    if (cfg.quotaMode === 'free') engine = 'platform';
     return T.t(ENGINE_KEYS[engine] || fallbackKey || 'engine.fallback');
   }
 
@@ -965,7 +966,7 @@
           /* 「去设置」给的是**用户自己能解决**的错误（#58 / #19）；
              其余（网络不通、超时、引擎报错）给「去设置」没用，但给「重试」有用（#20）。 */
           const c = res && res.code;
-          const fixable = (c === 'no-key' || c === 'quota');
+          const fixable = (c === 'no-key' || c === 'quota' || c === 'platform-quota' || c === 'platform-unavailable');
           fail(err, fixable ? { label: T.t('panel.goSettings') } : null, !fixable);
           return;
         }

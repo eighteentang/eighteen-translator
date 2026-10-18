@@ -142,6 +142,17 @@ if (mf) {
   let m;
   while ((m = re.exec(bg))) used.add(m[1]);
 
+  // The optional platform origin lives in config.js, rather than a URL literal
+  // in background.js. Validate its permission only when a real service is set.
+  try {
+    const base = require(path.join(ROOT, 'config.js')).PLATFORM.baseUrl;
+    if (base) {
+      const url = new URL(base);
+      if (url.protocol !== 'https:' || url.origin !== base) bad('PLATFORM.baseUrl must be an HTTPS origin');
+      used.add(url.hostname);
+    }
+  } catch (e) { bad('Cannot read platform service configuration: ' + e.message); }
+
   for (const h of used) {
     if (!declared.has(h)) bad('background.js 请求了 ' + h + '，但 host_permissions 里没有它');
   }

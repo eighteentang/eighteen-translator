@@ -329,20 +329,77 @@ async function translateDeepseek(text, target, cfg, signal) {
   return out;
 }
 
-/* ---------- 引擎 3：平台免费额度（预留接缝，尚未开放） ---------- */
+/* ---------- 平台免费额度 ---------- */
 
-/* 用户不配置任何凭据、由本扩展的服务端代付额度。
+const PLATFORM = globalThis.WT_CONFIG.PLATFORM;
+let devicePromise = null;
 
-   将来接入托管后端时，只需实现这个函数（请求自己的 Worker），
-   其余文件 —— 设置页、配置存储、调度逻辑 —— 都不用动。
+function deviceId() {
+  if (!devicePromise) {
+    devicePromise = chrome.storage.local.get({ platformDeviceId: '' }).then(async (v) => {
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v.platformDeviceId)) {
+        return v.platformDeviceId;
+      }
+      const id = crypto.randomUUID();
+      await chrome.storage.local.set({ platformDeviceId: id });
+      return id;
+    }).catch((err) => { devicePromise = null; throw err; });
+  }
+  return devicePromise;
+}
 
-   实现时要注意的三条（先记在这里，免得以后忘）：
-   1. 服务端地址写在这里，绝不要把任何 API Key 打进扩展包；
-   2. 服务端要能识别设备、按日限额，并设「每日总预算熔断」兜底 ——
-      单靠每人每日上限挡不住批量刷，熔断才是唯一能兜住损失的机制；
-   3. 网络失败时不要锁死用户，退回提示「改用自己的 API Key」，而不是卡住不动。 */
+function validPlatformQuota(q) {
+  return !!q && /^\d{4}-\d{2}-\d{2}$/.test(q.date) && q.limit === PLATFORM.dailyLimit
+    && Number.isInteger(q.used) && q.used >= 0 && q.used <= q.limit
+    && q.remaining === q.limit - q.used && Number.isFinite(q.resetAt) && q.resetAt > 0;
+}
+
+let quotaChain = Promise.resolve();
+function savePlatformQuota(quota) {
+  if (!validPlatformQuota(quota)) return Promise.resolve();
+  quotaChain = quotaChain.then(async () => {
+    const old = (await chrome.storage.local.get({ platformQuota: null })).platformQuota;
+    if (validPlatformQuota(old) && (old.date > quota.date || (old.date === quota.date && old.used > quota.used))) return;
+    await chrome.storage.local.set({ platformQuota: quota });
+  }).catch(() => {});
+  return quotaChain;
+}
+
+async function platformRequest(path, data, signal) {
+  if (!PLATFORM.baseUrl) throw coded(new Error(T.t('err.platform')), 'platform-unavailable');
+  const res = await fetchWithTimeout(PLATFORM.baseUrl.replace(/\/$/, '') + path, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ deviceId: await deviceId() }, data))
+  }, 25000, signal);
+  let result;
+  try { result = await res.json(); }
+  catch (e) { throw coded(new Error(T.t('err.platformUnavailable')), 'platform-unavailable'); }
+  if (!result || typeof result !== 'object' || Array.isArray(result)) {
+    throw coded(new Error(T.t('err.platformUnavailable')), 'platform-unavailable');
+  }
+  if (validPlatformQuota(result.quota)) {
+    await savePlatformQuota(result.quota);
+    result.quota = (await chrome.storage.local.get({ platformQuota: null })).platformQuota || result.quota;
+  }
+  if (!res.ok || result.ok !== true) {
+    const key = result.code === 'quota' ? 'err.platformQuota'
+      : result.code === 'rate-limit' ? 'err.platformRate' : 'err.platformUnavailable';
+    const code = result.code === 'quota' ? 'platform-quota'
+      : result.code === 'rate-limit' ? 'platform-rate' : 'platform-unavailable';
+    throw coded(new Error(T.t(key)), code);
+  }
+  if (!validPlatformQuota(result.quota)) {
+    throw coded(new Error(T.t('err.platformUnavailable')), 'platform-unavailable');
+  }
+  return result;
+}
+
 async function translateViaPlatform(text, target, cfg, signal) {
-  throw new Error(T.t('err.platform'));
+  const result = await platformRequest('/v1/translate', { text, target }, signal);
+  if (typeof result.text !== 'string' || !result.text.trim() || result.target !== target) {
+    throw coded(new Error(T.t('err.platformUnavailable')), 'platform-unavailable');
+  }
+  return result.text.trim();
 }
 
 /* ---------- 调度与错误翻译 ---------- */
@@ -450,6 +507,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;   // 异步
   }
 
+  if (msg.type === 'platformStatus') {
+    platformRequest('/v1/quota', {}, new AbortController().signal)
+      .then((result) => sendResponse({ ok: true, quota: result.quota }))
+      .catch((err) => sendResponse({ ok: false, code: err.wtCode || 'platform-unavailable', error: friendlyError(err, false) }));
+    return true;
+  }
+
   if (msg.type !== 'translate') return;
 
   const text = String(msg.text || '');
@@ -477,32 +541,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     .then(async (cfg) => {
       const dir = pickTarget(text, cfg, force);
 
-      const ck = cacheKey(cfg.engine, dir.target, text);
+      const engine = cfg.quotaMode === 'free' ? 'platform' : cfg.engine;
+      const ck = cacheKey(engine, dir.target, text);
       const hit = await cacheGet(ck);
       if (hit) {
         done();
         sendResponse({
-          ok: true, text: hit, engine: cfg.engine,
+          ok: true, text: hit, engine: engine,
           target: dir.target, reversed: dir.reversed, cached: true
         });
         return;
       }
 
       const u = await readUsage();
-      if (cfg.quotaDaily > 0 && (u.byDay[todayKey()] || 0) >= cfg.quotaDaily) {
+      if (cfg.quotaMode !== 'free' && cfg.quotaDaily > 0 && (u.byDay[todayKey()] || 0) >= cfg.quotaDaily) {
         done();
         sendResponse({ ok: false, code: 'quota', error: T.t(QUOTA_MSG_KEY) });
         return;
       }
 
-      recordUsage();   // 发出即计数，理由见上面的注释
+      if (cfg.quotaMode !== 'free') recordUsage();   // 自带 Key 模式保持原来的计数方式
 
       try {
         const out = await translateNow(text, cfg, dir, ctrl.signal);
+        if (cfg.quotaMode === 'free') await recordUsage();
         cachePut(ck, out);
         done();
         sendResponse({
-          ok: true, text: out, engine: cfg.engine,
+          ok: true, text: out, engine: engine,
           target: dir.target, reversed: dir.reversed
         });
       } catch (err) {

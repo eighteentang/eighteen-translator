@@ -510,12 +510,19 @@
         </span>
         <span id="usageToday" class="num">—</span>
       </div>
-      <div class="row">
+      <div class="row" id="ownQuotaRow">
         <span class="label">
           <span data-i18n="opt.quota"></span>
           <span class="desc" id="quotaDesc"></span>
         </span>
         <button id="raiseQuota" class="small" type="button" data-i18n="opt.raise"></button>
+      </div>
+      <div class="row is-hidden" id="freeQuotaRow">
+        <span class="label">
+          <span data-i18n="quota.label"></span>
+          <span class="desc" data-i18n="quota.description"></span>
+        </span>
+        <span id="freeQuotaRemaining" class="num">—</span>
       </div>
       <div class="row">
         <span class="label">

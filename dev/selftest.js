@@ -46,7 +46,7 @@ let uiLangTag = 'zh-CN';
    ⚠️ 与 `override` 分开是刻意的：override 是「当前配置」，每个用例都要换一份；
    而用量与缓存必须跨用例累积，才能测出「第二次命中缓存」「到顶被拦」这类行为。
    把两者混在一起的话，上一个用例 set 进去的配置会串到下一个用例的 get(null) 上。 */
-const PERSISTED = ['usage', 'cache'];
+const PERSISTED = ['usage', 'cache', 'platformDeviceId', 'platformQuota'];
 let store = {};
 
 global.chrome = {
@@ -58,7 +58,7 @@ global.chrome = {
   storage: {
     local: {
       get: (defaults) => {
-        const out = Object.assign({}, defaults, override);
+        const out = Object.assign({}, defaults, { quotaMode: 'own' }, override);
         // 只有用量与缓存从 store 里补 —— 配置一律以 override 为准（见上面那段注释）
         PERSISTED.forEach((k) => { if (k in store) out[k] = store[k]; });
         return Promise.resolve(out);
@@ -1292,6 +1292,70 @@ function check(name, cond, extra) {
   check('界面语言：弹层语言按钮的提示文案在（#35）',
     typeof ZH_T['pop.langTo'] === 'string' && typeof EN_T['pop.langTo'] === 'string',
     ZH_T['pop.langTo']);
+
+  /* 平台免费额度：只测公开接口契约，服务端实现位于仓库之外。 */
+  await drain();
+  store = {};
+  override = { quotaMode: 'free', engine: 'google', targetLang: 'zh', deepseekKey: 'sk-private-test', quotaDaily: 1 };
+  const platformBase = CFG.PLATFORM.baseUrl;
+  CFG.PLATFORM.baseUrl = 'https://platform.example.test';
+  const quotaDate = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+  const quota = (used) => ({ date: quotaDate, used, limit: 30, remaining: 30 - used,
+    resetAt: Date.parse(quotaDate + 'T00:00:00+08:00') + 86400000 });
+  let platformCalls = [];
+  mockFetch = async (url, opts) => {
+    platformCalls.push({ url, opts });
+    return { ok: true, status: 200, json: async () => ({ ok: true, text: '平台结果', target: 'zh', quota: quota(1) }) };
+  };
+  let freeResult = await call('A unique platform sample.', 'zh');
+  check('平台：请求只包含安装标识、选中文字和目标语言，不发送自带 Key',
+    freeResult.ok && !JSON.stringify(platformCalls).includes('sk-private-test')
+      && JSON.parse(platformCalls[0].opts.body).deviceId === store.platformDeviceId);
+  check('平台：免费模式忽略用户选择的引擎，并使用独立缓存键',
+    freeResult.engine === 'platform' && platformCalls[0].url === CFG.PLATFORM.baseUrl + '/v1/translate');
+  check('平台：服务端返回的剩余次数被保存', store.platformQuota.remaining === 29);
+  const storedDevice = store.platformDeviceId;
+  freeResult = await call('A unique platform sample.', 'zh');
+  check('平台：命中缓存不发请求、不扣免费次数', freeResult.cached && platformCalls.length === 1);
+  await call('Another unique platform sample.', 'zh');
+  check('平台：本地自带 Key 上限不会拦截免费模式，安装标识跨请求不变',
+    platformCalls.length === 2 && JSON.parse(platformCalls[1].opts.body).deviceId === storedDevice);
+
+  mockFetch = async () => ({ ok: false, status: 429, json: async () => ({ ok: false, code: 'quota', quota: quota(30) }) });
+  freeResult = await call('A new sample after quota exhaustion.', 'zh');
+  check('平台：用完 30 次后返回明确错误和去设置的机器码',
+    !freeResult.ok && freeResult.code === 'platform-quota' && /30/.test(freeResult.error));
+  check('平台：额度用完后仍可使用已经缓存的译文',
+    (await call('A unique platform sample.', 'zh')).cached === true);
+  mockFetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true, quota: quota(2) }) });
+  const statusResult = await send({ type: 'platformStatus' });
+  check('平台：额度查询不触发翻译，并且旧状态不会覆盖更新后的用量',
+    statusResult.ok && store.platformQuota.used === 30 && statusResult.quota.used === 30);
+
+  await drain();
+  const beforeFailure = JSON.stringify(store.usage);
+  mockFetch = async () => ({ ok: false, status: 503, json: async () => ({ ok: false, code: 'unavailable' }) });
+  freeResult = await call('Service outage sample.', 'zh');
+  check('平台：不可用时提示重试或自带 Key，失败不增加本地成功计数',
+    freeResult.code === 'platform-unavailable' && JSON.stringify(store.usage) === beforeFailure);
+  mockFetch = async () => ({ ok: true, status: 200, json: async () => ({ ok: true, text: 'invalid', target: 'en', quota: quota(2) }) });
+  freeResult = await call('Malformed service response sample.', 'zh');
+  check('平台：不接受目标语言不符的服务响应', freeResult.ok === false);
+  mockFetch = async () => ({ ok: true, status: 200, json: async () => null });
+  freeResult = await call('Null service response sample.', 'zh');
+  check('平台：空服务响应被转换为可读提示', freeResult.code === 'platform-unavailable');
+  mockFetch = async () => ({ ok: false, status: 429, json: async () => ({ ok: false, code: 'rate-limit' }) });
+  freeResult = await call('Rate limited sample.', 'zh');
+  check('平台：短时限流与每日额度耗尽使用不同提示', freeResult.code === 'platform-rate');
+
+  override = { quotaMode: 'own', engine: 'deepseek', targetLang: 'zh', deepseekKey: 'sk-own' };
+  mockFetch = async (url) => {
+    check('平台：切换回自带 Key 后直接访问 DeepSeek', url === 'https://api.deepseek.com/chat/completions');
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'own result' } }] }) };
+  };
+  freeResult = await call('Own key remains independent.', 'zh');
+  check('平台：免费额度耗尽不影响自带 Key 翻译', freeResult.ok && freeResult.engine === 'deepseek');
+  CFG.PLATFORM.baseUrl = platformBase;
 
   console.log('\n==> ' + pass + ' passed, ' + fail + ' failed');
   process.exit(fail ? 1 : 0);

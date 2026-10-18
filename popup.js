@@ -158,7 +158,9 @@ function paintTargetLang(cfg) {
   select.setAttribute('aria-label', t('pop.target'));
 }
 
-function renderUsage() {
+let usagePaintSeq = 0;
+function renderUsage(refresh = true) {
+  const seq = ++usagePaintSeq;
   const el = $('usageToday');
   if (!el) return Promise.resolve();
   if (!hasExt) {
@@ -166,7 +168,24 @@ function renderUsage() {
     return Promise.resolve();
   }
 
-  return chrome.storage.local.get({ usage: null }).then((v) => {
+  return chrome.storage.local.get({ usage: null, platformQuota: null, quotaMode: DEFAULTS.quotaMode }).then((v) => {
+    if (seq !== usagePaintSeq) return;
+    if (v.quotaMode === 'free') {
+      $('usageLabel').textContent = t('quota.remainingLabel');
+      $('usageDesc').textContent = t('quota.resetHint');
+      el.textContent = t('quota.amount', { n: '—', limit: globalThis.WT_CONFIG.PLATFORM.dailyLimit });
+      const q = v.platformQuota;
+      if (q && q.resetAt > Date.now()) el.textContent = t('quota.amount', { n: q.remaining, limit: q.limit });
+      if (!refresh) return;
+      return new Promise((resolve) => chrome.runtime.sendMessage({ type: 'platformStatus' }, (result) => {
+        if (!chrome.runtime.lastError && seq === usagePaintSeq && result && result.ok) {
+          el.textContent = t('quota.amount', { n: result.quota.remaining, limit: result.quota.limit });
+        }
+        resolve();
+      }));
+    }
+    $('usageLabel').textContent = t('pop.usageToday');
+    $('usageDesc').textContent = t('pop.usageTodayDesc');
     const usage = v && v.usage;
     const byDay = usage && usage.byDay && typeof usage.byDay === 'object'
       ? usage.byDay
@@ -209,7 +228,7 @@ function paintWarn(cfg) {
   const engine = cfg.engine === 'google' ? 'google' : 'deepseek';
   const hasKey = !!(cfg.deepseekKey && String(cfg.deepseekKey).trim());
 
-  if (engine === 'deepseek' && !hasKey) {
+  if (cfg.quotaMode !== 'free' && engine === 'deepseek' && !hasKey) {
     el.textContent = t('pop.warnNoKey');
     return;
   }
@@ -335,7 +354,11 @@ $('targetLang').addEventListener('change', () => {
 
 if (hasExt && chrome.storage.onChanged) {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.usage) renderUsage();
+    if (area === 'local' && changes.quotaMode && lastCfg) {
+      lastCfg.quotaMode = changes.quotaMode.newValue;
+      paintWarn(lastCfg);
+    }
+    if (area === 'local' && (changes.usage || changes.quotaMode || changes.platformQuota)) renderUsage(!changes.platformQuota);
   });
 }
 

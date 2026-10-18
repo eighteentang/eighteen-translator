@@ -53,16 +53,34 @@ function currentTriggerMode() {
   return checked ? checked.value : 'auto';
 }
 
-/* 「平台免费额度」模式下不需要选引擎、也不需要填凭据 —— 由服务端代付。
-   该模式目前置灰不可选，这段分支是为将来开放预留的：
-   届时只需放开那个 radio，再把 background.js 的 translateViaPlatform 实现掉，
-   这里不用改。 */
+/* 免费模式不需要填写凭据；仅在真实服务地址配置后开放。 */
 function syncEnginePanels() {
   const isFree = currentQuotaMode() === 'free';
   const engine = currentEngine();
 
   $('sec-engine').classList.toggle('is-hidden', isFree);
   $('cfg-deepseek').classList.toggle('on', !isFree && engine === 'deepseek');
+  const ready = !!globalThis.WT_CONFIG.PLATFORM.baseUrl;
+  const free = document.querySelector('input[name="quotaMode"][value="free"]');
+  free.disabled = !ready;
+  free.closest('label').classList.toggle('disabled', !ready);
+  free.closest('label').querySelector('.hint').textContent = t(ready ? 'opt.freeReadyHint' : 'opt.freeHint');
+  free.closest('label').querySelector('.badge').textContent = t(ready ? 'opt.freeReadyBadge' : 'opt.badgeTesting');
+  document.querySelector('input[name="quotaMode"][value="own"]').closest('label')
+    .querySelector('.badge').classList.toggle('is-hidden', DEFAULTS.quotaMode !== 'own');
+  $('ownQuotaRow').classList.toggle('is-hidden', isFree);
+  $('freeQuotaRow').classList.toggle('is-hidden', !isFree);
+  const note = document.querySelector('[data-i18n="opt.usageNote"]');
+  note.classList.toggle('is-hidden', isFree);
+  if (isFree && hasExt) {
+    $('freeQuotaRemaining').textContent = t('quota.unknown', { limit: globalThis.WT_CONFIG.PLATFORM.dailyLimit });
+    chrome.runtime.sendMessage({ type: 'platformStatus' }, (result) => {
+      if (chrome.runtime.lastError || currentQuotaMode() !== 'free') return;
+      if (result && result.ok) {
+        $('freeQuotaRemaining').textContent = t('quota.remaining', { n: result.quota.remaining, limit: result.quota.limit });
+      }
+    });
+  }
 }
 
 function setActiveSection(group) {
@@ -643,6 +661,7 @@ $('uiLang').addEventListener('change', () => {
   checkLangs();
   checkSites();
   renderUsage();
+  syncEnginePanels();
 
   if (!hasExt) return;
   chrome.storage.local.set({ uiLang: pref })
@@ -747,3 +766,13 @@ if (hasExt) {
 
 // 用量 / 上限 / 缓存是只读展示，与表单回填互不依赖，各走各的
 renderUsage();
+
+if (hasExt && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.platformQuota || currentQuotaMode() !== 'free') return;
+    const q = changes.platformQuota.newValue;
+    if (q && q.resetAt > Date.now()) {
+      $('freeQuotaRemaining').textContent = t('quota.remaining', { n: q.remaining, limit: q.limit });
+    }
+  });
+}

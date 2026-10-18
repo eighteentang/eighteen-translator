@@ -1767,6 +1767,86 @@ async function main() {
           && /[\u4e00-\u9fff]/.test(uiBack.stepText),
         JSON.stringify(uiBack));
 
+      // Free-service contract: use a mock transport, never the real paid API.
+      const quotaWorker = await sw.worker();
+      await quotaWorker.evaluate(async () => {
+        globalThis.__freeUsed = 0;
+        globalThis.__freeCalls = 0;
+        globalThis.WT_CONFIG.PLATFORM.baseUrl = 'https://platform.example.test';
+        await chrome.storage.local.set({ quotaMode: 'free', quotaDaily: 1, cache: {},
+          preferredLang: 'en', targetLang: 'zh', deepseekKey: '' });
+        globalThis.fetch = async (url, options) => {
+          if (String(url).includes('api.deepseek.com')) {
+            return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'Own-key E2E result' } }] }) };
+          }
+          const date = new Date(Date.now() + 8 * 3600000).toISOString().slice(0, 10);
+          const quota = () => ({ date, used: globalThis.__freeUsed, limit: 30,
+            remaining: 30 - globalThis.__freeUsed,
+            resetAt: Date.parse(date + 'T00:00:00+08:00') + 86400000 });
+          if (String(url).endsWith('/v1/quota')) return { ok: true, status: 200, json: async () => ({ ok: true, quota: quota() }) };
+          if (globalThis.__freeUsed >= 30) return { ok: false, status: 429, json: async () => ({ ok: false, code: 'quota', quota: quota() }) };
+          globalThis.__freeCalls++;
+          globalThis.__freeUsed++;
+          const data = JSON.parse(options.body);
+          return { ok: true, status: 200, json: async () => ({ ok: true, text: 'Free E2E result', target: data.target, quota: quota() }) };
+        };
+      });
+      await opt.evaluate(() => {
+        window.WT_CONFIG.PLATFORM.baseUrl = 'https://platform.example.test';
+        const radio = document.querySelector('[name="quotaMode"][value="free"]');
+        radio.checked = true;
+        radio.dispatchEvent(new Event('change'));
+        document.querySelector('[data-setting-tab="usage"]').click();
+      });
+      await sleep(400);
+      const freeSettings = await opt.evaluate(() => ({
+        enabled: !document.querySelector('[name="quotaMode"][value="free"]').disabled,
+        quota: document.getElementById('freeQuotaRemaining').textContent,
+        ownHidden: document.getElementById('ownQuotaRow').classList.contains('is-hidden'),
+        engineHidden: document.getElementById('sec-engine').classList.contains('is-hidden')
+      }));
+      ok('免费模式无需 Key，设置页显示 30 次额度并隐藏自带 Key 的调高上限按钮',
+        freeSettings.enabled && freeSettings.ownHidden && freeSettings.engineHidden && /30/.test(freeSettings.quota),
+        JSON.stringify(freeSettings));
+
+      await selectAndMouseUp(page, 'p1');
+      await sleep(1400);
+      const freePanel = await probe(page);
+      ok('免费模式可以直接翻译，浮层显示免费服务标识',
+        /Free E2E result/.test(freePanel.text) && /免费|Free translation/.test(freePanel.text), JSON.stringify(freePanel));
+      const freePop = await browser.newPage();
+      await freePop.goto(`chrome-extension://${extId}/popup.html`, { waitUntil: 'load' });
+      await sleep(500);
+      const freePopup = await freePop.evaluate(() => ({
+        quota: document.getElementById('usageToday').textContent,
+        warning: document.getElementById('warnline').textContent,
+        label: document.getElementById('usageLabel').textContent
+      }));
+      ok('免费模式的弹层显示剩余 29 次，不误报缺少 API Key',
+        /29/.test(freePopup.quota) && !freePopup.warning && /剩余|left/.test(freePopup.label), JSON.stringify(freePopup));
+      await selectAndMouseUp(page, 'p1');
+      await sleep(1100);
+      ok('免费模式命中缓存时不再调用翻译服务',
+        await quotaWorker.evaluate(() => globalThis.__freeCalls) === 1);
+
+      await quotaWorker.evaluate(() => { globalThis.__freeUsed = 30; });
+      await selectAndMouseUp(page, 'p2');
+      await sleep(1400);
+      const exhausted = await probe(page);
+      ok('30 次用完后提示次日恢复或自带 Key，并保留去设置入口',
+        /30/.test(exhausted.text) && /Key/.test(exhausted.text) && /设置/.test(exhausted.text), JSON.stringify(exhausted));
+      await sleep(300);
+      const remainingZero = await freePop.evaluate(() => document.getElementById('usageToday').textContent);
+      ok('额度用完后，已经打开的弹层自动更新为剩余 0 次', /0\s*\/\s*30/.test(remainingZero), remainingZero);
+
+      await quotaWorker.evaluate(async () => chrome.storage.local.set({ quotaMode: 'own', engine: 'deepseek', deepseekKey: 'sk-e2e-placeholder', quotaDaily: 5000 }));
+      await page.evaluate(() => { document.getElementById('p1').textContent = 'A completely new English sentence tests the independent own-key translation path.'; });
+      await sleep(300);
+      await selectAndMouseUp(page, 'p1');
+      await sleep(1400);
+      ok('免费额度用完后，切换自带 Key 仍可正常翻译', /Own-key E2E result/.test((await probe(page)).text));
+      await freePop.close();
+
       ok('设置页无脚本错误', optErr.length === 0, optErr.join(' | ') || '无');
       await opt.close();
     }

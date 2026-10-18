@@ -78,10 +78,10 @@
 <main>
 
 <h1>Privacy Policy — Eighteen Translator</h1>
-<p class="meta">Last updated: 26 September 2026 · Applies to the <strong>Eighteen Translator</strong> browser extension (Manifest V3), version 0.4.1 and later.</p>
+<p class="meta">Last updated: 18 October 2026 · Applies to <strong>Eighteen Translator</strong> (Manifest V3). The optional free service is available only after deployment and configuration.</p>
 
 <div class="lead">
-  <p><strong>In one paragraph.</strong> Eighteen Translator runs entirely on your device. It processes only the text you explicitly select, and sends that text to the translation service <em>you</em> configured — either DeepSeek (using your own API key) or Google's public translate endpoint. It has no account system, no server of its own, no analytics and no telemetry. Everything it stores stays in your browser's local extension storage and is deleted when you uninstall the extension.</p>
+  <p><strong>In one paragraph.</strong> The extension processes only text you select. Own-key mode sends it directly to DeepSeek or Google's public translation endpoint. When enabled, free mode sends the selection, target language and a random browser-installation identifier to the project's Cloudflare-hosted service, which forwards the text to DeepSeek and records the daily allowance. Your own API key is never sent to the free service. No account, advertising analytics or browsing-history collection is required.</p>
 </div>
 
 <h2>1. What this extension does</h2>
@@ -109,7 +109,7 @@
 <p>The extension does <strong>not</strong> read page content beyond your selection. It does not record which pages you visit, and it does not build any history of your translations.</p>
 
 <h2>3. Where your text is sent</h2>
-<p>Selected text leaves your device only when it is sent to the translation service you configured. There are two engines, and only one is active at a time:</p>
+<p>Selected text leaves your device when you request a translation. Own-key mode uses one of these engines:</p>
 <table>
   <tr><th>Engine</th><th>Destination</th><th>Notes</th></tr>
   <tr>
@@ -123,10 +123,11 @@
     <td>An unofficial public endpoint with no account or key. Not reachable from mainland China networks and often rate-limited on shared IPs.</td>
   </tr>
 </table>
-<p>These two domains are the only network destinations the extension ever contacts. They are declared in the extension manifest as <code>host_permissions</code>, and this list matches exactly what the code requests.</p>
+<p>When free mode is enabled, the extension also contacts the deployed project service declared in <code>manifest.json</code> under <code>host_permissions</code>. The service receives the selected text, target language and installation identifier, and forwards the text to DeepSeek. No page URL, browsing history or user-supplied API key is included. The service is not enabled in builds without a configured service origin.</p>
+<p>The project service does not persist selections or translations. It stores short-lived daily quota records linked to a hashed installation identifier. Cloudflare processes connection metadata such as IP addresses; the service uses transient network metadata for request handling without storing the original IP. Cloudflare and DeepSeek have their own infrastructure, retention and privacy policies.</p>
 
 <h2>4. What is stored on your device</h2>
-<p>Everything the extension stores lives in <code>chrome.storage.local</code> — your browser's local extension storage. <strong>None of it is uploaded anywhere.</strong></p>
+<p>Settings, your API key and the translation cache live in <code>chrome.storage.local</code>. They are not uploaded to the project service. Free mode additionally stores a random installation identifier locally and sends it to the service to obtain the daily allowance; the latest returned allowance is cached locally.</p>
 <ul>
   <li><strong>Your settings</strong> — languages, engine choice, panel appearance, read-aloud options, excluded sites.</li>
   <li><strong>Your API key</strong>, if you entered one.</li>
@@ -134,25 +135,26 @@
   <li><strong>A translation cache</strong> — up to 200 recent translations, expiring after 7 days, so repeated selections do not hit the network again.</li>
 </ul>
 <div class="warn">
-  <p><strong>Your API key is stored in plain text.</strong> It is not encrypted. Anyone who can read your browser profile directory on this computer can read it. The extension has no cloud storage, so please keep your computer secure. The show/hide toggle in the settings page only masks it on screen — it is not encryption. Encrypting locally would be meaningless here, because the key to decrypt it would have to ship inside the extension too.</p>
+  <p><strong>Your API key is stored in plain text.</strong> It is not encrypted. Anyone who can read your browser profile directory on this computer can read it. Your key is not synced to cloud storage. The show/hide toggle in the settings page only masks it on screen — it is not encryption.</p>
 </div>
 <p>Settings are <strong>not</strong> synced across devices. If you install the extension on another computer you will need to configure it again. This is deliberate: syncing would put your API key into your browser vendor's account storage.</p>
 
 <h2>5. What is NOT collected</h2>
 <ul>
   <li>No browsing history, no list of visited pages, no page content beyond your selection.</li>
-  <li>No analytics, no telemetry, no crash reporting, no usage statistics of any kind.</li>
-  <li>No account, no email address, no name, no identifier that could link data to you.</li>
+  <li>No advertising analytics, tracking telemetry or crash reporting. Local usage counters and the free service's daily quota records are used for the features described above.</li>
+  <li>No account, email address or name is requested. Free requests use a random installation identifier, not a verified personal identity.</li>
   <li>No advertising, no tracking pixels, no third-party scripts on this page or in the extension.</li>
-  <li>Nothing is sold, rented or shared with anyone.</li>
+  <li>Data is not sold or rented. The providers above process requests needed for translation.</li>
 </ul>
 <p>The extension contains <strong>no remote code</strong>. All executable code ships inside the package; it never downloads or evaluates code at runtime.</p>
 
 <h2>6. How to delete your data</h2>
 <ul>
-  <li><strong>Clear the translation cache and counters:</strong> settings page → Usage section → clear cache.</li>
+  <li><strong>Clear the translation cache:</strong> settings page → Usage section → clear cache.</li>
   <li><strong>Remove your API key:</strong> settings page → clear the key field.</li>
-  <li><strong>Delete everything at once:</strong> uninstall the extension (<code>edge://extensions</code> or <code>chrome://extensions</code>). Your browser removes all local extension storage with it. Nothing remains on any server, because nothing was ever sent to one.</li>
+  <li><strong>Delete local data:</strong> uninstall the extension (<code>edge://extensions</code> or <code>chrome://extensions</code>). This removes its local settings, API key, cache and installation identifier. It does not immediately erase provider-side records.</li>
+  <li><strong>Free-service records:</strong> the service schedules deletion of inactive daily quota records after their short retention period. Cloudflare storage recovery and provider infrastructure can have separate retention periods. Uninstalling the extension does not signal the server.</li>
 </ul>
 
 <h2>7. Permissions and why they are needed</h2>
@@ -162,10 +164,10 @@
   <tr><td><code>https://api.deepseek.com/*</code>, <code>https://translate.googleapis.com/*</code></td><td>To send the selected text to the engine you chose.</td></tr>
   <tr><td>Content script on <code>&lt;all_urls&gt;</code></td><td>Select-to-translate only works if the extension is present on the page where you select text. Without this, it would have to be enabled per site, which defeats the purpose.</td></tr>
 </table>
-<p>The extension requests no other permissions.</p>
+<p>Builds with free mode enabled also declare the deployed project-service origin so requests can reach it. The extension requests no account, payment or browsing-history permissions.</p>
 
 <h2>8. Children</h2>
-<p>This extension is a general-purpose translation tool. It is not directed at children and collects no personal information from anyone.</p>
+<p>This extension is a general-purpose translation tool and is not directed at children. Do not include sensitive personal information in text you send to translation providers.</p>
 
 <h2>9. Changes to this policy</h2>
 <p>If the extension's data handling changes, this page will be updated and the "last updated" date above will change. Material changes — for example, adding any form of analytics — will also be noted in the extension's <a href="https://github.com/eighteentang/eighteen-translator/blob/main/CHANGELOG.md">changelog</a>.</p>
@@ -176,10 +178,10 @@
 <hr class="lang">
 
 <h1 lang="zh-CN">隐私政策 —— 划词翻译（Eighteen Translator）</h1>
-<p class="meta" lang="zh-CN">最后更新：2026 年 9 月 26 日 · 适用于 <strong>Eighteen Translator</strong> 浏览器扩展（Manifest V3）0.4.1 及之后的版本。</p>
+<p class="meta" lang="zh-CN">最后更新：2026 年 10 月 18 日 · 适用于 <strong>Eighteen Translator</strong>（Manifest V3）。可选的免费服务在部署并配置后开放。</p>
 
 <div class="lead" lang="zh-CN">
-  <p><strong>一句话说清。</strong>本扩展全部逻辑在你本机运行。它只处理你<strong>主动选中</strong>的文字，并把这些文字发给你<strong>自己配置</strong>的翻译服务 —— DeepSeek（用你自己的 API Key）或 Google 的公共翻译接口。它没有账号体系、没有自己的服务器、没有任何统计或埋点。它存下来的东西全部留在你浏览器的本地扩展存储里，卸载扩展即全部删除。</p>
+  <p><strong>一句话说清。</strong>本扩展只处理你主动选中的文字。自带 Key 模式直接访问 DeepSeek 或 Google 公共翻译接口；免费模式开放后，会把选中文字、目标语言和随机浏览器安装标识发送到本项目托管于 Cloudflare 的服务，再转发给 DeepSeek，并记录当天额度。你自己的 API Key 不会发送到免费服务。不注册账号，不收集浏览历史，没有广告统计埋点。</p>
 </div>
 
 <h2 lang="zh-CN">1. 这个扩展做什么</h2>
@@ -207,7 +209,7 @@
 <p lang="zh-CN">本扩展<strong>不</strong>读取选中内容之外的页面内容，不记录你访问过哪些页面，也不保留任何翻译历史。</p>
 
 <h2 lang="zh-CN">3. 文字发到哪里</h2>
-<p lang="zh-CN">选中的文字只会在发往<strong>你自己配置的</strong>翻译服务时离开你的设备。两个引擎，同时只有一个生效：</p>
+<p lang="zh-CN">你请求翻译时，选中文字会离开设备。自带 Key 模式使用下面一个引擎：</p>
 <table lang="zh-CN">
   <tr><th>引擎</th><th>目标域名</th><th>说明</th></tr>
   <tr>
@@ -221,10 +223,11 @@
     <td>非官方公共端点，无需账号与 Key。中国大陆网络不可达，共享出口 IP 常被限流（返回 429）。</td>
   </tr>
 </table>
-<p lang="zh-CN">这两个域名是本扩展唯一会访问的网络目标，它们就是扩展清单里声明的 <code>host_permissions</code>，与实际代码发起的请求完全一致。</p>
+<p lang="zh-CN">免费模式开放后，扩展还会访问 <code>manifest.json</code> 的 <code>host_permissions</code> 中声明的项目服务地址。后台接收选中文字、目标语言和安装标识，并把文字转发给 DeepSeek；不包含页面网址、浏览历史或用户自带的 API Key。没有配置服务地址的版本不会开放免费服务。</p>
+<p lang="zh-CN">项目服务不保存原文或译文，只保存关联到安装标识散列值的短期每日额度记录。Cloudflare 会处理 IP 等连接信息；服务临时使用网络信息处理请求，不保存原始 IP。Cloudflare 和 DeepSeek 各自有独立的基础设施、留存规则与隐私政策。</p>
 
 <h2 lang="zh-CN">4. 本机存了什么</h2>
-<p lang="zh-CN">扩展存下的所有内容都在 <code>chrome.storage.local</code>（浏览器本地扩展存储）里。<strong>不会有任何一项被上传。</strong></p>
+<p lang="zh-CN">设置、用户 API Key 和译文缓存保存在 <code>chrome.storage.local</code>，不上传到项目服务。免费模式另外在本地生成随机安装标识，发送该标识查询和使用每日额度，并在本地缓存服务端返回的额度状态。</p>
 <ul lang="zh-CN">
   <li><strong>你的设置</strong> —— 语言、引擎、浮层外观、朗读选项、排除站点。</li>
   <li><strong>你的 API Key</strong>（如果你填了）。</li>
@@ -232,25 +235,26 @@
   <li><strong>译文缓存</strong> —— 最多 200 条、7 天后过期，避免反复划同一段文字时重复请求。</li>
 </ul>
 <div class="warn" lang="zh-CN">
-  <p><strong>你的 API Key 是明文存储的</strong>，没有加密。能读到这台电脑上浏览器配置目录的人就能看到它。本扩展没有云端存储，请自行保管好电脑。设置页那个「显示 / 隐藏」只是遮住屏幕，不是加密 —— 扩展里做本地加密没有意义：用来解密的密钥只能一起放在扩展里，等于没加，反而给人虚假的安全感。</p>
+  <p><strong>你的 API Key 是明文存储的</strong>，没有加密。能读到这台电脑上浏览器配置目录的人就能看到它。用户 Key 不会同步到云端存储。设置页的「显示 / 隐藏」只遮住屏幕，不是加密。</p>
 </div>
 <p lang="zh-CN">配置<strong>不</strong>跨设备同步。换台电脑要重新配置。这是刻意的：一旦同步，你的 API Key 就会进到浏览器厂商的账号存储里。</p>
 
 <h2 lang="zh-CN">5. 不收集什么</h2>
 <ul lang="zh-CN">
   <li>不收集浏览历史、不记录访问过哪些页面、不读取选中内容之外的页面内容。</li>
-  <li>没有任何统计、埋点、崩溃上报或使用数据收集。</li>
-  <li>没有账号、不索取邮箱与姓名、不存在能把数据关联到你的标识符。</li>
+  <li>没有广告统计、跟踪埋点或崩溃上报。本地用量计数及免费服务每日额度记录仅用于上述功能。</li>
+  <li>没有账号、不索取邮箱与姓名。免费请求使用随机安装标识，不核验真实个人身份。</li>
   <li>没有广告、没有跟踪像素；本页与扩展里都没有第三方脚本。</li>
-  <li>不向任何人出售、出租或共享数据。</li>
+  <li>不出售或出租数据；上述服务提供方会处理翻译所需的请求。</li>
 </ul>
 <p lang="zh-CN">扩展内<strong>没有远程代码</strong>。所有可执行代码都随包一起分发，运行时不会下载或执行任何外部代码。</p>
 
 <h2 lang="zh-CN">6. 怎么删掉你的数据</h2>
 <ul lang="zh-CN">
-  <li><strong>清译文缓存与计数：</strong>设置页 →「用量」一节 → 清空缓存。</li>
+  <li><strong>清译文缓存：</strong>设置页 →「用量」一节 → 清空缓存。</li>
   <li><strong>删除 API Key：</strong>设置页里把 Key 清掉即可。</li>
-  <li><strong>一次全删：</strong>卸载扩展（<code>edge://extensions</code> 或 <code>chrome://extensions</code>）。浏览器会连本地扩展存储一起清掉。任何服务器上都不会有残留 —— 因为从来没有数据被发到我们的服务器（我们没有服务器）。</li>
+  <li><strong>删除本地数据：</strong>卸载扩展（<code>edge://extensions</code> 或 <code>chrome://extensions</code>），浏览器会删除本地设置、Key、缓存及安装标识。此操作不会立即删除服务提供方的记录。</li>
+  <li><strong>免费服务记录：</strong>后台会在短期保留后安排清理不活跃的每日额度记录。Cloudflare 的存储恢复机制及提供方基础设施可能有独立保留期。卸载扩展不会通知服务端。</li>
 </ul>
 
 <h2 lang="zh-CN">7. 申请的权限及理由</h2>
@@ -260,10 +264,10 @@
   <tr><td><code>https://api.deepseek.com/*</code>、<code>https://translate.googleapis.com/*</code></td><td>把选中的文字发给你选择的引擎。</td></tr>
   <tr><td>内容脚本匹配 <code>&lt;all_urls&gt;</code></td><td>划词翻译必须能在你选字的那张页面上工作。若改成按站点启用，就失去了「选中即译」的意义。</td></tr>
 </table>
-<p lang="zh-CN">除此之外没有申请任何其他权限。</p>
+<p lang="zh-CN">开放免费模式的版本还会声明真实项目服务域名权限，以便发送免费翻译请求。扩展不申请账号、支付或浏览历史权限。</p>
 
 <h2 lang="zh-CN">8. 关于儿童</h2>
-<p lang="zh-CN">本扩展是通用翻译工具，不面向儿童，也不向任何人收集个人信息。</p>
+<p lang="zh-CN">本扩展是通用翻译工具，不面向儿童。请勿在发往翻译服务的文字中包含敏感个人信息。</p>
 
 <h2 lang="zh-CN">9. 政策变更</h2>
 <p lang="zh-CN">若数据处理方式发生变化，本页会更新，「最后更新」日期也会改。涉及实质性的变化（例如将来加入任何形式的统计）还会记进扩展的<a href="https://github.com/eighteentang/eighteen-translator/blob/main/CHANGELOG.md">更新日志</a>。</p>
